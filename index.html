@@ -1088,7 +1088,7 @@
         if(!pop) return;
         clearTimeout(window._calToastTimer);
         pop.innerHTML = '<button type="button" class="cal-toast-x" onclick="closeCalDayToast()" aria-label="닫기">×</button>'+
-            '<strong>'+escapeHtml(ds)+'</strong><br>학습할게요(목표) <b>'+r+' / '+dg+'</b> · 알고있어요 스와이프 '+l+'회';
+            '<strong>'+escapeHtml(ds)+'</strong><br>학습 목표 갯수 <b>'+r+' / '+dg+'</b> / 알고있는 단어 '+l+'회';
         pop.classList.add('show');
         window._calToastTimer = setTimeout(closeCalDayToast, 6500);
     }
@@ -1474,7 +1474,7 @@
         var denom = Math.max(1, nSk, nFc);
         document.getElementById('an-daily-avg').innerHTML =
             '스키밍 일평균 <b>'+formatMs((sk||0)/denom)+'</b> · 플래시 일평균 <b>'+formatMs((fc||0)/denom)+'</b><br>'+
-            '(활동이 있었던 날 기준 '+denom+'일로 나눔)';
+            '(활동이 있었던 날 기준 '+denom+'일로 나눈 것.)';
     }
 
     window.openQuizScreen = function(){
