@@ -4,383 +4,311 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>JLPT Swipe Master Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Sans+KR:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Noto+Sans+KR:wght@500;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
-        /* [기존 프리미엄 스타일 유지] */
         :root {
             --primary: #FF6B6B; --accent: #4ECDC4; --accent2: #FFE66D;
             --bg: #0F0F10; --card-bg: #1A1A1C; --card-bg2: #222225;
             --text-main: #F0F0F2; --text-sub: #888896; --text-muted: #555560;
             --border: rgba(255,255,255,0.07); --shadow: 0 25px 50px rgba(0,0,0,0.6);
-            --shadow-sm: 0 8px 20px rgba(0,0,0,0.3); --radius: 28px;
-            --radius-sm: 16px; --nav-h: 80px;
+            --radius: 28px; --radius-sm: 16px; --nav-h: 80px;
         }
+
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-        html,body{height:100%;overflow:hidden;}
-        body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text-main);display:flex;justify-content:center;}
+        body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text-main);overflow:hidden; height: 100vh;}
         button{cursor:pointer;border:none;outline:none;font-family:inherit;}
-        ruby rt{font-size:0.52em;color:var(--accent);line-height:1.2;font-family:'Noto Sans JP',sans-serif;}
+        ruby rt{font-size:0.55em;color:var(--accent);font-family:'Noto Sans JP',sans-serif;}
+        .hidden{display:none !important;}
 
-        #app{width:100%;max-width:430px;height:100vh;display:flex;flex-direction:column;position:relative;overflow:hidden;}
+        #app{width:100%;max-width:430px;height:100vh;margin:0 auto;position:relative;overflow:hidden;background:var(--bg);}
 
-        /* ---- SCREENS ---- */
-        .screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity .3s ease,transform .3s ease;}
-        .screen.hidden{opacity:0;pointer-events:none;transform:translateY(16px);}
+        /* --- SCREENS --- */
+        .screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity .3s, transform .3s;}
+        
+        /* --- CALENDAR (Vertical Scroll) --- */
+        .cal-container { flex: 1; overflow-y: auto; padding: 10px; scroll-snap-type: y mandatory; }
+        .cal-month { scroll-snap-align: start; margin-bottom: 30px; background: var(--card-bg); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 50%; position: relative; }
+        .cal-day.today { border: 2px solid var(--primary); font-weight: 900; }
+        .cal-day.done { background: rgba(78,205,196,0.2); color: var(--accent); font-weight: 700; }
+        .cal-dot { position: absolute; bottom: 4px; width: 4px; height: 4px; background: var(--primary); border-radius: 50%; }
 
-        /* ---- ONBOARDING & INTRO ---- */
-        #screen-onboarding{background:radial-gradient(ellipse at 30% 20%,rgba(255,107,107,.15) 0%,transparent 60%),var(--bg); align-items:center;justify-content:center;padding:30px 24px;z-index:100;}
-        .ob-logo{font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;}
-        .ob-title{font-size:26px;font-weight:900;text-align:center;line-height:1.35;margin-bottom:8px;}
-        .ob-sub{color:var(--text-sub);font-size:14px;text-align:center;margin-bottom:40px;}
-        .style-cards{display:flex;gap:14px;width:100%;margin-bottom:32px;}
-        .style-card{flex:1;border-radius:20px;border:2px solid var(--border);background:var(--card-bg);padding:22px 14px;text-align:center;transition:all .2s;cursor:pointer;position:relative;}
-        .style-card.selected{border-color:var(--primary);background:rgba(255,107,107,.1);}
-        .sc-emoji{font-size:42px;margin-bottom:10px;display:block;}
-        .sc-name{font-weight:700;font-size:15px;margin-bottom:4px;}
-        .sc-desc{font-size:12px;color:var(--text-sub);line-height:1.4;}
-        .btn-primary{width:100%;padding:18px;border-radius:var(--radius-sm);background:var(--primary);color:#fff;font-weight:700;font-size:16px;transition:all .2s;box-shadow:0 8px 24px rgba(255,107,107,.4);}
-        .btn-primary:active{transform:scale(.97);}
-        .btn-primary:disabled{opacity:.35;box-shadow:none;}
-
-        #screen-intro{background:var(--bg);align-items:center;justify-content:center;padding:30px 24px;z-index:99;}
-        .intro-badge{background:rgba(78,205,196,.12);color:var(--accent);padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:28px;}
-        .intro-preview{width:100%;max-width:340px;background:var(--card-bg);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin-bottom:28px;border:1px solid var(--border);}
-        .intro-preview-img{width:100%;height:160px;background:linear-gradient(135deg,#1e1e2e,#2a1a2e);display:flex;align-items:center;justify-content:center;font-size:70px;}
-        .intro-preview-body{padding:18px 20px;}
-        .intro-preview-kanji{font-family:'Noto Sans JP',sans-serif;font-size:38px;font-weight:900;}
-
-        /* ---- BOTTOM NAV ---- */
-        .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:var(--nav-h);background:rgba(18,18,20,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index:1000;}
-        .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
-        .nav-icon{font-size:22px;}
-        .nav-label{font-size:10px;color:var(--text-muted);font-weight:500;}
-        .nav-item.active .nav-label{color:var(--primary);}
-
-        /* ---- HOME ---- */
-        #screen-home{z-index:10;padding-bottom:var(--nav-h);overflow-y:auto;}
-        .home-hdr{padding:20px 20px 10px;display:flex;justify-content:space-between;align-items:center;}
-        .home-greeting{font-size:22px;font-weight:800;}
-        .dday-chip{background:rgba(255,107,107,.12);color:var(--primary);padding:6px 14px;border-radius:20px;font-family:'DM Mono';font-size:13px;}
-        .qa-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px 16px;}
-        .qa-card{background:var(--card-bg);border-radius:var(--radius-sm);padding:18px 10px;text-align:center;border:1px solid var(--border);}
-
-        /* ---- SKIMMING & SWIPE ZONE ---- */
-        #screen-skimming{z-index:20;}
-        .skim-hdr{padding:16px 20px 8px;display:flex;justify-content:space-between;align-items:center;}
-        .progress-pill{font-family:'DM Mono';color:var(--accent);font-size:13px;background:rgba(78,205,196,.1);padding:6px 14px;border-radius:20px;}
-        .swipe-zone{flex:1;position:relative;display:flex;align-items:center;justify-content:center;perspective:1000px;overflow:hidden;}
-
-        /* WORD CARD */
-        .word-card{
-            position:absolute;width:calc(100% - 32px);max-width:390px;height:calc(100% - 16px);
-            background:var(--card-bg);border-radius:var(--radius);box-shadow:var(--shadow);
-            border:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;
-            will-change:transform; transition:transform .4s cubic-bezier(.175,.885,.32,1.275);
+        /* --- SWIPE ENGINE --- */
+        .swipe-zone { flex: 1; position: relative; perspective: 1000px; display: flex; align-items: center; justify-content: center; }
+        .word-card { 
+            position: absolute; width: 90%; height: 85%; background: var(--card-bg); border-radius: var(--radius);
+            border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden;
+            display: flex; flex-direction: column; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
         }
-        .c-img-wrap{width:100%;height:200px;background:#1a1a2e;display:flex;align-items:center;justify-content:center;font-size:90px;position:relative;}
-        .c-body{padding:16px 20px;flex:1;display:flex;flex-direction:column;text-align:center;}
-        .c-furi{color:var(--accent);font-size:15px;letter-spacing:4px;}
-        .c-kanji{font-family:'Noto Sans JP',sans-serif;font-size:52px;font-weight:900;}
-        .c-ex{background:rgba(255,255,255,.03);border-left:3px solid var(--accent);padding:12px;margin-top:auto;text-align:left;}
-        .ex-jp{font-size:14px;line-height:1.8;}
+        .swipe-overlay { position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; backdrop-filter: blur(10px); transition: 0.2s; }
+        .word-card.sw-left .swipe-overlay.left { opacity: 1; background: rgba(255,107,107,0.3); }
+        .word-card.sw-right .swipe-overlay.right { opacity: 1; background: rgba(78,205,196,0.3); }
+
+        /* --- UI COMPONENTS --- */
+        .c-img { width: 100%; height: 180px; background: #1a1a2e; display: flex; align-items: center; justify-content: center; font-size: 80px; position: relative; }
+        .c-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+        .c-kanji { font-size: 48px; font-weight: 900; font-family: 'Noto Sans JP'; text-align: center; }
+        .c-meaning { font-size: 20px; font-weight: 700; color: var(--text-main); text-align: center; }
+        .c-ex { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 15px; border-left: 4px solid var(--accent); margin-top: auto; }
+        .btn-primary { background: var(--primary); color: white; padding: 18px; border-radius: 20px; font-weight: 900; width: 100%; box-shadow: 0 10px 20px rgba(255,107,107,0.3); }
         
-        /* Overlay */
-        .swipe-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;pointer-events:none;z-index:10;border-radius:var(--radius);}
-        .word-card.sw-right .swipe-overlay{opacity:1;background:rgba(78,205,196,.2);backdrop-filter:blur(10px);color:var(--accent);}
-        .word-card.sw-left .swipe-overlay{opacity:1;background:rgba(255,107,107,.2);backdrop-filter:blur(10px);color:var(--primary);}
-        .ov-title{font-size:24px;font-weight:900;}
-
-        /* Actions */
-        .skim-actions{padding:14px 24px 20px;display:flex;gap:12px;}
-        .action-btn{flex:1;padding:16px;border-radius:18px;font-size:14px;font-weight:700;}
-        .action-btn.know{background:rgba(255,107,107,.1);color:var(--primary);border:1.5px solid rgba(255,107,107,.2);}
-        .action-btn.learn{background:rgba(78,205,196,.1);color:var(--accent);border:1.5px solid rgba(78,205,196,.2);}
-
-        /* Modal */
-        .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .3s;}
-        .modal-overlay.open{opacity:1;pointer-events:all;}
-        .modal-sheet{width:100%;background:var(--card-bg2);border-radius:28px 28px 0 0;padding:20px;transform:translateY(100%);transition:transform .3s ease-out;}
-        .modal-overlay.open .modal-sheet{transform:translateY(0);}
-
-        #screen-skim-done{z-index:30;align-items:center;justify-content:center;padding:24px;}
-        .done-stats{background:var(--card-bg);padding:20px;border-radius:16px;width:100%;margin-bottom:20px;}
-        
-        .hidden { display: none !important; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; height: var(--nav-h); background: #121214; display: flex; border-top: 1px solid var(--border); z-index: 1000; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted); }
+        .nav-item.active { color: var(--primary); }
     </style>
 </head>
 <body>
 <div id="app">
-
-    <div id="screen-onboarding" class="screen">
-        <div class="ob-logo">✦ JLPT SWIPE MASTER PRO</div>
-        <div class="ob-title">마음에 드는<br>카드 스타일을 고르세요</div>
-        <div class="ob-sub">선택한 스타일로 단어 이미지가 제공됩니다</div>
-        <div class="style-cards">
-            <div class="style-card" data-style="anime" onclick="selectStyle(this)">
-                <span class="sc-emoji">🎌</span>
-                <div class="sc-name">애니메이션</div>
-                <div class="sc-desc">일러스트 풍 이미지</div>
-            </div>
-            <div class="style-card" data-style="realism" onclick="selectStyle(this)">
-                <span class="sc-emoji">📷</span>
-                <div class="sc-name">리얼리즘</div>
-                <div class="sc-desc">실사 사진 기반</div>
-            </div>
+    <div id="screen-tutorial" class="screen">
+        <div style="padding: 40px 20px; text-align: center;">
+            <h2 id="tut-title">기초 실력 테스트 (1/6)</h2>
+            <p style="color: var(--text-sub);">아는 단어는 왼쪽, 공부할 단어는 오른쪽!</p>
         </div>
-        <button class="btn-primary" id="btn-style-confirm" disabled onclick="goIntro()">이 스타일로 하기</button>
+        <div class="swipe-zone" id="tut-zone"></div>
     </div>
 
-    <div id="screen-intro" class="screen hidden">
-        <div class="intro-badge">✅ 카드 준비 완료!</div>
-        <div class="intro-preview">
-            <div class="intro-preview-img">🌸</div>
-            <div class="intro-preview-body">
-                <div class="intro-preview-kanji">作法</div>
-                <div style="color:var(--text-sub)">예의범절, 예절</div>
-            </div>
-        </div>
-        <div style="font-size:20px;font-weight:800;text-align:center;margin-bottom:28px;">지금 바로,<br>첫 번째 단어들을 펼쳐봅시다</div>
-        <button class="btn-primary" onclick="startSkimming(true)">스키밍 시작하기</button>
+    <div id="screen-goal" class="screen hidden" style="padding: 30px 20px; overflow-y: auto;">
+        <h2 style="font-size: 28px; margin-bottom: 20px;">목표 설정 🎯</h2>
+        
+        <label style="display:block; margin-bottom: 10px;">2-1. 현재 JLPT 점수</label>
+        <select id="goal-current" style="width:100%; padding:15px; background:var(--card-bg); color:white; border-radius:10px; margin-bottom:20px;">
+            <option value="none">없습니다</option>
+            <option value="N5">N5</option><option value="N4">N4</option><option value="N3">N3</option><option value="N2">N2</option><option value="N1">N1</option>
+        </select>
+
+        <label style="display:block; margin-bottom: 10px;">2-2. 목표 점수 (학습 레벨)</label>
+        <select id="goal-target" style="width:100%; padding:15px; background:var(--card-bg); color:white; border-radius:10px; margin-bottom:20px;">
+            <option value="N5">N5</option><option value="N4">N4</option><option value="N3" selected>N3</option><option value="N2">N2</option><option value="N1">N1</option>
+        </select>
+
+        <label style="display:block; margin-bottom: 10px;">2-3. 시험 일자</label>
+        <input type="date" id="goal-date" style="width:100%; padding:15px; background:var(--card-bg); color:white; border-radius:10px; margin-bottom:20px;">
+
+        <label style="display:block; margin-bottom: 10px;">2-4. 하루 학습 단어 수</label>
+        <input type="number" id="goal-count" value="20" style="width:100%; padding:15px; background:var(--card-bg); color:white; border-radius:10px; margin-bottom:30px;">
+
+        <button class="btn-primary" onclick="saveGoals()">학습 시작하기</button>
     </div>
 
-    <div id="screen-home" class="screen hidden">
-        <div class="home-hdr">
-            <div class="home-greeting">오늘도 화이팅! 👋</div>
-            <div class="dday-chip" id="home-dday">D-75</div>
+    <div id="screen-home" class="screen hidden" style="padding-bottom: 80px;">
+        <div style="padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="home-user-info">N3 정복까지</h2>
+            <div id="home-dday" style="background: var(--primary); padding: 5px 15px; border-radius: 20px; font-family: 'DM Mono';">D-91</div>
         </div>
-        <div class="qa-grid">
-            <div class="qa-card" onclick="startSkimming(false)">
-                <div style="font-size:28px">⚡</div>
-                <div style="font-weight:700">스키밍</div>
+        <div class="cal-container" id="home-calendar">
             </div>
-            <div class="qa-card" onclick="alert('준비 중!')">
-                <div style="font-size:28px">🃏</div>
-                <div style="font-weight:700">플래시카드</div>
-            </div>
-            <div class="qa-card" onclick="alert('준비 중!')">
-                <div style="font-size:28px">🧪</div>
-                <div style="font-weight:700">퀴즈</div>
-            </div>
-        </div>
     </div>
 
     <div id="screen-skimming" class="screen hidden">
-        <div class="skim-hdr">
-            <button onclick="goHome()" style="background:none;color:var(--text-sub);font-size:20px;">🏠</button>
-            <div id="skim-mode-lbl" style="font-weight:700">튜토리얼</div>
-            <div class="progress-pill" id="skim-progress">0 / 6</div>
+        <div style="padding: 20px; display: flex; justify-content: space-between;">
+            <button onclick="changeScreen('home')">🏠</button>
+            <div id="skim-counter">1 / 20</div>
+            <div></div>
         </div>
-        <div class="swipe-zone" id="swipe-zone"></div>
-        <div class="skim-actions">
-            <button class="action-btn know" onclick="forceSwipe(-1)">👈 알고있어요</button>
-            <button class="action-btn learn" onclick="forceSwipe(1)">학습할게요 👉</button>
+        <div class="swipe-zone" id="skim-zone"></div>
+        <div style="padding: 20px; display: flex; gap: 10px;">
+            <button class="btn-primary" style="background: var(--card-bg); color: var(--primary);" onclick="handleSwipe('left')">알고 있어요</button>
+            <button class="btn-primary" onclick="handleSwipe('right')">학습할게요</button>
         </div>
     </div>
 
-    <div id="screen-skim-done" class="screen hidden">
-        <div style="font-size:64px;margin-bottom:10px;">🎉</div>
-        <div style="font-size:26px;font-weight:900;margin-bottom:10px;">스키밍 완료!</div>
-        <div class="done-stats" id="done-stats"></div>
-        <button class="btn-primary" onclick="goHome()">홈으로 돌아가기</button>
+    <div id="screen-library" class="screen hidden" style="padding: 20px; overflow-y: auto;">
+        <h2>라이브러리 📚</h2>
+        <div style="display: flex; gap: 10px; margin: 20px 0; overflow-x: auto;">
+            <button onclick="filterLibrary('N5')">N5</button><button onclick="filterLibrary('N4')">N4</button><button onclick="filterLibrary('N3')">N3</button>
+        </div>
+        <div id="lib-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
     </div>
 
-    <nav class="bottom-nav hidden" id="bottom-nav">
-        <div class="nav-item active" onclick="navTo('home',this)"><div class="nav-icon">🏠</div><div class="nav-label">홈</div></div>
-        <div class="nav-item"><div class="nav-icon">📚</div><div class="nav-label">서재</div></div>
-        <div class="nav-item"><div class="nav-icon">📊</div><div class="nav-label">분석</div></div>
-        <div class="nav-item"><div class="nav-icon">⚙️</div><div class="nav-label">설정</div></div>
+    <div id="screen-analysis" class="screen hidden" style="display: flex; align-items:center; justify-content:center;">
+        <h3>🚧 아직 개발 중입니다 🚧</h3>
+    </div>
+
+    <nav class="bottom-nav hidden" id="main-nav">
+        <div class="nav-item active" onclick="changeScreen('home')">🏠<br>홈</div>
+        <div class="nav-item" onclick="changeScreen('skimming')">⚡<br>스키밍</div>
+        <div class="nav-item" onclick="changeScreen('library')">📚<br>라이브러리</div>
+        <div class="nav-item" onclick="changeScreen('analysis')">📊<br>분석</div>
+        <div class="nav-item" onclick="changeScreen('screen-goal')">⚙️<br>설정</div>
     </nav>
 </div>
 
 <script>
-const S = {
-    style: 'anime', db: [], isTutorial: true,
-    skimIdx: 0, skimTotal: 6,
-    learnWords: [], knownWords: [],
-    skimStart: null
-};
+    // --- GLOBAL STATE ---
+    let state = {
+        isTutorial: true,
+        tutorialIdx: 0,
+        targetLevel: 'N3',
+        dailyGoal: 20,
+        testDate: '',
+        library: [],
+        skimmingQueue: [],
+        currentIdx: 0,
+        db: [] // Loaded from JSON
+    };
 
-const EMOJIS=['🌸','⚡','🎌','🏯','🌊','🌙','🎋','🦋','🗻','🍱','🎭','🌺','⛩️','🎎','🌿'];
-
-// 1. 초기화 & 데이터 로드
-async function init() {
-    try {
-        const res = await fetch('jlpt_n3_expanded.json');
-        S.db = await res.json();
-    } catch(e) { console.error("Data Load Error", e); }
-}
-
-// 2. 루비(후리가나) 적용 함수 복구
-function applyRuby(text, alts) {
-    if (!alts || !alts.length) return text;
-    let html = text;
-    // 긴 단어부터 치환해야 겹침 방지
-    const sorted = [...alts].sort((a,b) => b.kanji.length - a.kanji.length);
-    sorted.forEach(a => {
-        const re = new RegExp(a.kanji, 'g');
-        html = html.replace(re, `<ruby>${a.kanji}<rt>${a.furigana}</rt></ruby>`);
-    });
-    return html;
-}
-
-// 3. 스키밍 시작 로직
-function startSkimming(isTutorial) {
-    S.isTutorial = isTutorial;
-    S.skimIdx = 0;
-    S.skimTotal = isTutorial ? 6 : S.db.length;
-    S.learnWords = []; S.knownWords = [];
-    S.skimStart = Date.now();
-    
-    document.getElementById('skim-mode-lbl').textContent = isTutorial ? '스키밍 튜토리얼' : 'N3 스키밍';
-    showScreen('skimming');
-    renderSkimCard();
-}
-
-// 4. 카드 렌더링
-function renderSkimCard() {
-    const zone = document.getElementById('swipe-zone');
-    if (S.skimIdx >= S.skimTotal) {
-        showSkimDone();
-        return;
+    // --- INITIALIZATION ---
+    async function init() {
+        // Load data (Assume jlpt_n3_expanded.json is in same dir)
+        try {
+            const response = await fetch('jlpt_n3_expanded.json');
+            state.db = await response.json();
+            loadFromStorage();
+            if(!state.isTutorial) {
+                setupApp();
+            } else {
+                renderTutorialCard();
+            }
+        } catch (e) { console.error("Data load failed", e); }
     }
 
-    const w = S.db[S.skimIdx];
-    document.getElementById('skim-progress').textContent = `${S.skimIdx + 1} / ${S.skimTotal}`;
-    
-    const card = document.createElement('div');
-    card.className = 'word-card';
-    card.innerHTML = `
-        <div class="swipe-overlay"><div class="ov-title" id="ov-title"></div></div>
-        <div class="c-img-wrap">${EMOJIS[S.skimIdx % EMOJIS.length]}</div>
-        <div class="c-body">
-            <div class="c-furi">${w.furigana}</div>
-            <div class="c-kanji">${w.kanji}</div>
-            <div style="font-size:20px;font-weight:700;margin:10px 0;">${w.meaning}</div>
-            <div class="c-ex">
-                <div class="ex-jp">${applyRuby(w.example_jp, w.alt_spellings)}</div>
-                <div style="font-size:12px;color:var(--text-sub);margin-top:5px;">${w.example_kr}</div>
+    // --- SWIPE LOGIC ---
+    function renderCard(containerId, word) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        const card = document.createElement('div');
+        card.className = 'word-card';
+        card.innerHTML = `
+            <div class="swipe-overlay left"><div>✅</div><p>아는 단어, 라이브러리에 넣을게요</p></div>
+            <div class="swipe-overlay right"><div>🃏</div><p>학습할 단어, 플래시 카드에서 만나요</p></div>
+            <div class="c-img">🖼️</div>
+            <div class="c-body">
+                <div style="color: var(--accent); text-align: center;">${word.furigana}</div>
+                <div class="c-kanji">${word.kanji}</div>
+                <div class="c-meaning">${word.meaning}</div>
+                <div style="font-size: 12px; color: var(--text-sub); text-align: center;">[${word.pos}]</div>
+                <div class="c-ex">
+                    <div style="font-family: 'Noto Sans JP'; font-size: 14px;">${word.example_jp}</div>
+                    <div style="font-size: 12px; color: var(--text-sub); margin-top: 5px;">${word.example_kr}</div>
+                </div>
             </div>
-        </div>
-    `;
-    zone.innerHTML = '';
-    zone.appendChild(card);
-    bindSwipe(card, w);
-}
+            <div style="padding: 10px 20px; display: flex; justify-content: space-between; font-size: 12px;">
+                <span>${word.level}</span>
+                <button onclick="speak('${word.kanji}')">🔊 TTS</button>
+                <button onclick="alert('Tip: ${word.tips[0]?.meaning || "없음"}')">💡 팁</button>
+            </div>
+        `;
+        container.appendChild(card);
+        initSwipe(card);
+    }
 
-// 5. 스와이프 물리 엔진 & 로직
-function bindSwipe(card, word) {
-    let sx = 0, mx = 0, dragging = false;
-    const ovTitle = card.querySelector('#ov-title');
+    function initSwipe(card) {
+        let startX = 0;
+        card.addEventListener('touchstart', e => startX = e.touches[0].clientX);
+        card.addEventListener('touchmove', e => {
+            let moveX = e.touches[0].clientX - startX;
+            card.style.transform = `translateX(${moveX}px) rotate(${moveX/20}deg)`;
+            if(moveX < -50) card.classList.add('sw-left');
+            else if(moveX > 50) card.classList.add('sw-right');
+            else card.classList.remove('sw-left', 'sw-right');
+        });
+        card.addEventListener('touchend', e => {
+            let endX = e.changedTouches[0].clientX - startX;
+            if (Math.abs(endX) > 120) {
+                handleSwipe(endX < 0 ? 'left' : 'right');
+            } else {
+                card.style.transform = '';
+                card.classList.remove('sw-left', 'sw-right');
+            }
+        });
+    }
 
-    const onStart = e => {
-        dragging = true;
-        sx = e.touches ? e.touches[0].clientX : e.pageX;
-        card.style.transition = 'none';
-    };
-
-    const onMove = e => {
-        if (!dragging) return;
-        const x = e.touches ? e.touches[0].clientX : e.pageX;
-        mx = x - sx;
-        const rot = mx / 20;
-        card.style.transform = `translateX(${mx}px) rotate(${rot}deg)`;
-
-        if (mx > 60) {
-            card.classList.add('sw-right'); card.classList.remove('sw-left');
-            ovTitle.textContent = "학습할게요";
-        } else if (mx < -60) {
-            card.classList.add('sw-left'); card.classList.remove('sw-right');
-            ovTitle.textContent = "알고있어요";
+    function handleSwipe(dir) {
+        if(state.isTutorial) {
+            state.tutorialIdx++;
+            if(state.tutorialIdx >= 6) {
+                state.isTutorial = false;
+                changeScreen('screen-goal');
+            } else {
+                renderTutorialCard();
+            }
         } else {
-            card.classList.remove('sw-right', 'sw-left');
+            const word = state.skimmingQueue[state.currentIdx];
+            if(dir === 'left') state.library.push(word);
+            state.currentIdx++;
+            saveToStorage();
+            if(state.currentIdx < state.dailyGoal) renderSkimCard();
+            else changeScreen('home');
         }
-    };
+    }
 
-    const onEnd = () => {
-        if (!dragging) return;
-        dragging = false;
-        if (Math.abs(mx) > 100) {
-            const dir = mx > 0 ? 1 : -1;
-            animateOut(card, dir, () => recordSwipe(word, dir === 1 ? 'learn' : 'know'));
-        } else {
-            card.style.transition = 'transform .4s cubic-bezier(.175,.885,.32,1.275)';
-            card.style.transform = 'translateX(0) rotate(0)';
-            card.classList.remove('sw-right', 'sw-left');
+    // --- SCREEN NAVIGATION ---
+    function changeScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById(screenId).classList.remove('hidden');
+        const nav = document.getElementById('main-nav');
+        nav.classList.toggle('hidden', screenId.includes('tutorial') || screenId.includes('goal') && state.isTutorial);
+    }
+
+    // --- GOAL SETTING & STORAGE ---
+    function saveGoals() {
+        state.targetLevel = document.getElementById('goal-target').value;
+        state.testDate = document.getElementById('goal-date').value;
+        state.dailyGoal = parseInt(document.getElementById('goal-count').value);
+        saveToStorage();
+        setupApp();
+        changeScreen('home');
+    }
+
+    function saveToStorage() {
+        localStorage.setItem('jlpt_state', JSON.stringify(state));
+    }
+
+    function loadFromStorage() {
+        const saved = localStorage.getItem('jlpt_state');
+        if(saved) Object.assign(state, JSON.parse(saved));
+    }
+
+    // --- APP LOGIC (Home, Library) ---
+    function setupApp() {
+        // D-Day
+        if(state.testDate) {
+            const diff = Math.ceil((new Date(state.testDate) - new Date()) / (1000*60*60*24));
+            document.getElementById('home-dday').innerText = `D-${diff}`;
         }
-    };
+        document.getElementById('home-user-info').innerText = `${state.targetLevel} 정복까지`;
+        renderCalendar();
+        
+        // Prepare Skimming
+        state.skimmingQueue = state.db.filter(w => w.level === state.targetLevel).slice(0, state.dailyGoal);
+        state.currentIdx = 0;
+    }
 
-    card.addEventListener('mousedown', onStart);
-    card.addEventListener('touchstart', onStart);
-    window.addEventListener('mousemove', onMove);
-    card.addEventListener('touchmove', onMove);
-    window.addEventListener('mouseup', onEnd);
-    card.addEventListener('touchend', onEnd);
-}
+    function renderCalendar() {
+        const cal = document.getElementById('home-calendar');
+        cal.innerHTML = '';
+        const now = new Date();
+        for(let i=0; i<3; i++) { // Render 3 months
+            const m = new Date(now.getFullYear(), now.getMonth() + i, 1);
+            const div = document.createElement('div');
+            div.className = 'cal-month';
+            div.innerHTML = `<h3>${m.getFullYear()}년 ${m.getMonth()+1}월</h3><div class="cal-grid"></div>`;
+            const grid = div.querySelector('.cal-grid');
+            // ... (Add date logic here for simplified calendar)
+            for(let d=1; d<=30; d++) grid.innerHTML += `<div class="cal-day ${d === now.getDate() && i===0 ? 'today':''}">${d}</div>`;
+            cal.appendChild(div);
+        }
+    }
 
-// 6. 날아가는 애니메이션 함수
-function animateOut(card, dir, cb) {
-    const tx = dir * window.innerWidth * 1.5;
-    const rot = dir * 45;
-    card.style.transition = 'transform .5s ease-in, opacity .5s';
-    card.style.transform = `translateX(${tx}px) rotate(${rot}deg)`;
-    card.style.opacity = '0';
-    setTimeout(cb, 400);
-}
+    function renderTutorialCard() {
+        document.getElementById('tut-title').innerText = `기초 실력 테스트 (${state.tutorialIdx+1}/6)`;
+        renderCard('tut-zone', state.db[state.tutorialIdx]);
+    }
 
-// 7. 결과 기록 및 다음 카드
-function recordSwipe(word, action) {
-    if (action === 'learn') S.learnWords.push(word);
-    else S.knownWords.push(word);
-    S.skimIdx++;
-    renderSkimCard();
-}
+    function renderSkimCard() {
+        document.getElementById('skim-counter').innerText = `${state.currentIdx+1} / ${state.dailyGoal}`;
+        renderCard('skim-zone', state.skimmingQueue[state.currentIdx]);
+    }
 
-// 8. 버튼 클릭 시 강제 스와이프 (애니메이션 포함)
-function forceSwipe(dir) {
-    const card = document.querySelector('.word-card');
-    if (!card) return;
-    const word = S.db[S.skimIdx];
-    
-    // 버튼 클릭 시 오버레이 잠깐 보여주기
-    if (dir === 1) card.classList.add('sw-right');
-    else card.classList.add('sw-left');
+    function speak(text) {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'ja-JP';
+        window.speechSynthesis.speak(u);
+    }
 
-    animateOut(card, dir, () => recordSwipe(word, dir === 1 ? 'learn' : 'know'));
-}
-
-// 9. 리포트 화면 표시
-function showSkimDone() {
-    const elapsed = Math.floor((Date.now() - S.skimStart) / 1000);
-    document.getElementById('done-stats').innerHTML = `
-        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
-            <span>학습 단어</span><span style="color:var(--accent);font-weight:700;">${S.skimTotal}개</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
-            <span>학습할게요</span><span style="color:var(--primary);font-weight:700;">${S.learnWords.length}개</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px 0;">
-            <span>소요 시간</span><span>${Math.floor(elapsed/60)}분 ${elapsed%60}초</span>
-        </div>
-    `;
-    showScreen('skim-done');
-}
-
-// 화면 전환 유틸
-function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('hidden', s.id !== 'screen-' + id));
-    const nav = document.getElementById('bottom-nav');
-    nav.classList.toggle('hidden', id !== 'home');
-}
-
-function goHome() { showScreen('home'); }
-function goIntro() { showScreen('intro'); }
-function selectStyle(el) {
-    document.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-    document.getElementById('btn-style-confirm').disabled = false;
-}
-
-window.onload = init;
+    init();
 </script>
 </body>
 </html>
