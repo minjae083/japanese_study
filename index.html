@@ -45,7 +45,7 @@
         .card.right .overlay { opacity: 1; color: var(--accent); background: rgba(78, 205, 196, 0.2); }
 
         /* Report UI */
-        .report-box { text-align: center; padding: 30px; color: white; animation: slideUp 0.5s ease-out; }
+        .report-box { text-align: center; padding: 30px; color: white; animation: slideUp 0.5s ease-out; width: 100%; }
         @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .btn-main { width: 100%; padding: 20px; border-radius: 20px; border: none; background: var(--primary); color: white; font-weight: 700; font-size: 18px; cursor: pointer; margin-top: 20px; }
 
@@ -98,6 +98,7 @@
     }
 
     function render() {
+        // [중요] 렌더링 시점에 튜토리얼 종료 여부를 가장 먼저 확인
         if (phase === 'tutorial' && curIdx >= TUTORIAL_LIMIT) {
             showReport();
             return;
@@ -136,10 +137,11 @@
         phase = 'report';
         document.getElementById('mode-title').innerText = "학습 리포트";
         document.getElementById('action-bar').style.visibility = 'hidden';
+        document.getElementById('progress').innerText = `${TUTORIAL_LIMIT} / ${TUTORIAL_LIMIT}`;
         
         zone.innerHTML = `
             <div class="report-box">
-                <h1 style="color:var(--accent); font-size:40px; margin-bottom:10px;">6/6</h1>
+                <h1 style="color:var(--accent); font-size:40px; margin-bottom:10px;">${TUTORIAL_LIMIT}/${TUTORIAL_LIMIT}</h1>
                 <p style="font-size:18px; line-height:1.6;">튜토리얼을 마쳤습니다!<br>N3 정복을 위한 준비가 끝났어요.</p>
                 <div style="background:rgba(255,255,255,0.05); padding:20px; border-radius:20px; margin-top:20px; text-align:left;">
                     <p>🎯 목표: N3 필수 단어 완독</p>
@@ -154,6 +156,12 @@
         phase = 'main';
         document.getElementById('mode-title').innerText = "N3 스키밍 모드";
         document.getElementById('action-bar').style.visibility = 'visible';
+        render();
+    }
+
+    // [공통] 다음 카드로 인덱스를 이동시키는 함수
+    function nextCard() {
+        curIdx++;
         render();
     }
 
@@ -186,7 +194,7 @@
             if (Math.abs(moveX) > 100) {
                 const dir = moveX > 0 ? 1 : -1;
                 el.style.transform = `translateX(${dir * 600}px) rotate(${dir * 45}deg)`;
-                setTimeout(() => { curIdx++; render(); }, 300);
+                setTimeout(nextCard, 300); // 0.3초 뒤 인덱스 증가 및 렌더링
             } else {
                 el.style.transform = 'translateX(0) rotate(0)';
                 el.classList.remove('left', 'right');
@@ -206,7 +214,7 @@
         if (!card) return;
         card.style.transition = 'transform 0.5s ease-in';
         card.style.transform = `translateX(${dir * 600}px) rotate(${dir * 45}deg)`;
-        setTimeout(() => { curIdx++; render(); }, 300);
+        setTimeout(nextCard, 300); // 버튼 클릭 시에도 0.3초 뒤에 공통 로직 실행
     }
 
     window.onload = init;
