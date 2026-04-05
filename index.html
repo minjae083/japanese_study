@@ -28,13 +28,13 @@
         .screen.hidden{opacity:0; pointer-events: none;}
 
         /* --- CUSTOM CALENDAR (Vertical Scroll) --- */
-        .cal-container { flex: 1; overflow-y: auto; padding: 20px; scroll-snap-type: y mandatory; }
+        .cal-container { flex: 1; overflow-y: auto; padding: 20px; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; }
         .cal-month { scroll-snap-align: start; margin-bottom: 30px; background: var(--card-bg); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
         .cal-month h3 { margin-bottom: 15px; font-family: 'DM Mono'; color: var(--accent); font-size: 18px; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; }
-        .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 50%; border: 1.5px solid transparent; }
+        .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 50%; border: 1.5px solid transparent; transition: 0.2s; }
         .cal-day.today { border-color: var(--primary); color: var(--primary); font-weight: 900; }
-        .cal-day.done { background: rgba(78,205,196,0.15); color: var(--accent); font-weight: 700; }
+        .cal-day.done { background: rgba(78,205,196,0.15); color: var(--accent); font-weight: 700; border-color: rgba(78,205,196,0.3); }
 
         /* --- SWIPE ENGINE --- */
         .swipe-zone { flex: 1; position: relative; perspective: 1000px; display: flex; align-items: center; justify-content: center; }
@@ -52,26 +52,32 @@
 
         /* --- CARD UI --- */
         .c-img { width: 100%; height: 180px; background: #1a1a2e; display: flex; align-items: center; justify-content: center; font-size: 80px; position: relative; overflow: hidden; }
-        .c-level-tag { position: absolute; top: 15px; left: 15px; background: var(--primary); padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: 900; }
+        .c-level-tag { position: absolute; top: 15px; left: 15px; background: var(--primary); padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .c-bookmark { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; filter: grayscale(1); transition: 0.2s; }
+        .c-bookmark.active { filter: grayscale(0); }
         .c-body { padding: 20px; flex: 1; display: flex; flex-direction: column; text-align: center; }
-        .c-kanji { font-size: 42px; font-weight: 900; font-family: 'Noto Sans JP'; margin-bottom: 6px; }
-        .c-meaning { font-size: 22px; font-weight: 700; color: var(--accent); margin-bottom: 15px; }
+        .c-furi { color: var(--accent); font-size: 14px; margin-bottom: 4px; font-family: 'Noto Sans JP'; }
+        .c-kanji { font-size: 42px; font-weight: 900; font-family: 'Noto Sans JP'; margin-bottom: 6px; letter-spacing: -1px; }
+        .c-meaning { font-size: 22px; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+        .c-pos { font-size: 13px; color: var(--text-sub); margin-bottom: 15px; }
         .c-ex { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 18px; text-align: left; margin-top: auto; border-left: 4px solid var(--accent); }
         
         /* --- GOAL UI --- */
         .goal-group { margin-bottom: 25px; }
         .goal-label { font-size: 14px; color: var(--text-sub); margin-bottom: 10px; display: block; font-weight: 600; }
+        .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .option-btn { padding: 15px; border-radius: 15px; background: var(--card-bg); border: 1.5px solid var(--border); color: var(--text-sub); font-weight: 700; transition: 0.2s; }
         .option-btn.selected { border-color: var(--primary); color: var(--primary); background: rgba(255,107,107,0.1); }
 
         /* --- NAV & BUTTONS --- */
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; height: var(--nav-h); background: #121214; display: flex; border-top: 1px solid var(--border); z-index: 1000; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted); cursor: pointer; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; height: var(--nav-h); background: rgba(18,18,20,0.95); backdrop-filter: blur(10px); display: flex; border-top: 1px solid var(--border); z-index: 1000; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted); transition: 0.2s; }
         .nav-item.active { color: var(--primary); }
         .nav-icon { font-size: 20px; margin-bottom: 4px; }
         
         .skim-btns { display: flex; gap: 12px; padding: 0 20px 20px; }
-        .btn-skim { flex: 1; padding: 18px; border-radius: 20px; font-weight: 900; font-size: 15px; }
+        .btn-skim { flex: 1; padding: 18px; border-radius: 20px; font-weight: 900; font-size: 15px; transition: 0.2s; }
+        .btn-skim:active { transform: scale(0.95); }
         .btn-skim.know { background: rgba(255,107,107,0.1); color: var(--primary); border: 1.5px solid var(--primary); }
         .btn-skim.learn { background: rgba(78,205,196,0.1); color: var(--accent); border: 1.5px solid var(--accent); }
     </style>
@@ -80,8 +86,8 @@
 <div id="app">
     <div id="screen-tutorial" class="screen active">
         <div style="padding: 40px 20px; text-align: center;">
-            <h2 id="tut-progress" style="font-size: 24px; font-weight: 900;">튜토리얼 (1/6)</h2>
-            <p style="color: var(--text-sub); margin-top: 8px;">단어를 스와이프하여 학습을 시작하세요</p>
+            <h2 id="tut-progress" style="font-size: 24px; font-weight: 900;">테스트 학습 (1/6)</h2>
+            <p style="color: var(--text-sub); margin-top: 8px;">단어를 스와이프하여 분류해보세요</p>
         </div>
         <div class="swipe-zone" id="tut-zone"></div>
         <div class="skim-btns">
@@ -91,11 +97,11 @@
     </div>
 
     <div id="screen-goal" class="screen hidden" style="padding: 30px 20px; overflow-y: auto;">
-        <h2 style="font-size: 26px; margin-bottom: 25px;">목표 설정하기 🎯</h2>
+        <h2 style="font-size: 28px; font-weight: 900; margin-bottom: 25px;">목표 설정 🎯</h2>
         
         <div class="goal-group">
             <label class="goal-label">2-1. 현재 JLPT 점수</label>
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            <div class="btn-grid" id="picker-current">
                 <button class="option-btn" onclick="setGoal('current', 'none', this)">없습니다</button>
                 <button class="option-btn" onclick="setGoal('current', 'N5', this)">N5</button>
                 <button class="option-btn" onclick="setGoal('current', 'N4', this)">N4</button>
@@ -106,8 +112,8 @@
         </div>
 
         <div class="goal-group">
-            <label class="goal-label">2-2. 목표 점수 (스키밍 레벨)</label>
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            <label class="goal-label">2-2. 목표 점수 (스키밍 단계 결정)</label>
+            <div class="btn-grid" id="picker-target">
                 <button class="option-btn" onclick="setGoal('target', 'N5', this)">N5</button>
                 <button class="option-btn" onclick="setGoal('target', 'N4', this)">N4</button>
                 <button class="option-btn" onclick="setGoal('target', 'N3', this)">N3</button>
@@ -118,29 +124,29 @@
 
         <div class="goal-group">
             <label class="goal-label">2-3. 시험 일자 선택</label>
-            <input type="date" id="goal-date-input" onchange="setGoal('date', this.value)" style="width: 100%; padding: 15px; border-radius: 12px; background: var(--card-bg); color: white; border: 1px solid var(--border);">
+            <input type="date" id="goal-date-input" onchange="setGoal('date', this.value)" style="width: 100%; padding: 18px; border-radius: 15px; background: var(--card-bg); color: white; border: 1.5px solid var(--border); font-size: 16px;">
         </div>
 
         <div class="goal-group">
             <label class="goal-label">2-4. 하루 학습 단어 수</label>
-            <input type="number" id="goal-count-input" placeholder="예: 20" onchange="setGoal('count', this.value)" style="width: 100%; padding: 15px; border-radius: 12px; background: var(--card-bg); color: white; border: 1px solid var(--border);">
+            <input type="number" id="goal-count-input" placeholder="예: 20" onchange="setGoal('count', this.value)" style="width: 100%; padding: 18px; border-radius: 15px; background: var(--card-bg); color: white; border: 1.5px solid var(--border); font-size: 16px;">
         </div>
 
         <button class="btn-skim learn" style="width: 100%; margin-top: 10px; background: var(--primary); color: white; border: none; padding: 20px;" onclick="finishGoalSetting()">설정 완료 및 시작</button>
     </div>
 
     <div id="screen-home" class="screen hidden" style="padding-bottom: 80px;">
-        <div style="padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="padding: 25px 20px 10px; display: flex; justify-content: space-between; align-items: center;">
             <h2 id="home-title" style="font-size: 22px; font-weight: 900;">JLPT N3 마스터</h2>
-            <div id="home-dday" style="background: var(--primary); padding: 5px 15px; border-radius: 20px; font-family: 'DM Mono'; font-weight: 700;">D-91</div>
+            <div id="home-dday" style="background: var(--primary); padding: 6px 16px; border-radius: 20px; font-family: 'DM Mono'; font-weight: 700; font-size: 14px;">D-91</div>
         </div>
         <div class="cal-container" id="main-calendar"></div>
     </div>
 
     <div id="screen-skimming" class="screen hidden">
-        <div style="padding: 20px; display:flex; justify-content: space-between;">
-            <div id="skim-level-tag" style="color: var(--accent); font-weight: 900;">N3</div>
-            <div id="skim-progress">1 / 20</div>
+        <div style="padding: 20px; display:flex; justify-content: space-between; align-items: center;">
+            <div id="skim-level-tag" style="color: var(--accent); font-weight: 900; font-size: 18px; font-family: 'DM Mono';">N3</div>
+            <div id="skim-progress-txt" style="font-family: 'DM Mono'; font-weight: 700; color: var(--text-sub);">1 / 20</div>
         </div>
         <div class="swipe-zone" id="skim-zone"></div>
         <div class="skim-btns">
@@ -150,102 +156,139 @@
     </div>
 
     <div id="screen-library" class="screen hidden" style="padding: 20px; overflow-y: auto; padding-bottom: 100px;">
-        <h2 style="margin-bottom: 15px;">라이브러리 📚</h2>
-        <div id="lib-tabs" style="display:flex; gap:10px; margin-bottom: 20px; overflow-x: auto;">
-            <button class="btn-skim learn" onclick="renderLibrary('N5')">N5</button>
-            <button class="btn-skim learn" onclick="renderLibrary('N4')">N4</button>
-            <button class="btn-skim learn" onclick="renderLibrary('N3')">N3</button>
-            <button class="btn-skim learn" onclick="renderLibrary('N2')">N2</button>
-            <button class="btn-skim learn" onclick="renderLibrary('N1')">N1</button>
+        <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: 900;">라이브러리 📚</h2>
+        <div style="display:flex; gap:10px; margin-bottom: 25px; overflow-x: auto; padding-bottom: 5px;">
+            <button class="option-btn" style="padding: 10px 20px;" onclick="renderLibrary('N5')">N5</button>
+            <button class="option-btn" style="padding: 10px 20px;" onclick="renderLibrary('N4')">N4</button>
+            <button class="option-btn" style="padding: 10px 20px;" onclick="renderLibrary('N3')">N3</button>
+            <button class="option-btn" style="padding: 10px 20px;" onclick="renderLibrary('N2')">N2</button>
+            <button class="option-btn" style="padding: 10px 20px;" onclick="renderLibrary('N1')">N1</button>
         </div>
-        <div id="lib-list" style="display: grid; grid-template-columns: 1fr; gap: 15px;"></div>
+        <div id="lib-list" style="display: flex; flex-direction: column; gap: 15px;"></div>
     </div>
 
-    <div id="screen-analysis" class="screen hidden" style="display:flex; align-items:center; justify-content:center;">
-        <h3 style="color: var(--text-sub);">🚧 분석 기능 개발 중입니다 🚧</h3>
+    <div id="screen-analysis" class="screen hidden" style="display:flex; align-items:center; justify-content:center; text-align: center; padding: 40px;">
+        <h3 style="color: var(--text-sub); font-size: 18px; line-height: 1.6;">🚧 분석 기능은<br>현재 개발 중입니다 🚧</h3>
     </div>
 
     <nav id="bottom-nav" class="bottom-nav hidden">
-        <div class="nav-item active" onclick="navigate('home', this)">🏠<br>홈</div>
-        <div class="nav-item" onclick="navigate('skimming', this)">⚡<br>스키밍</div>
-        <div class="nav-item" onclick="navigate('library', this)">📚<br>라이브러리</div>
-        <div class="nav-item" onclick="navigate('analysis', this)">📊<br>분석</div>
-        <div class="nav-item" onclick="navigate('goal', this)">⚙️<br>설정</div>
+        <div class="nav-item active" onclick="navigate('home', this)">
+            <div class="nav-icon">🏠</div><div>홈</div>
+        </div>
+        <div class="nav-item" onclick="navigate('skimming', this)">
+            <div class="nav-icon">⚡</div><div>스키밍</div>
+        </div>
+        <div class="nav-item" onclick="navigate('library', this)">
+            <div class="nav-icon">📚</div><div>라이브러리</div>
+        </div>
+        <div class="nav-item" onclick="navigate('analysis', this)">
+            <div class="nav-icon">📊</div><div>분석</div>
+        </div>
+        <div class="nav-item" onclick="navigate('goal', this)">
+            <div class="nav-icon">⚙️</div><div>설정</div>
+        </div>
     </nav>
 </div>
 
 <script>
-    // --- STATE ---
+    // --- STATE MANAGEMENT ---
     let state = {
         phase: 'tutorial', tutorialIdx: 0,
         currentLevel: 'none', targetLevel: 'N3', examDate: '', dailyGoal: 20,
         db: [], library: [], skimmingQueue: [], currentSkimIdx: 0,
-        history: {} // 날짜별 학습 완료 여부 저장
+        studyHistory: {}, bookmarks: new Set()
     };
 
-    const EMOJIS = ['🌸','🏯','🌊','🌙','🍱','🏮'];
+    const PLACEHOLDER_EMOJIS = ['🌸','🏯','🌊','🌙','🍱','🏮','⛩️','🗻'];
 
-    // --- INIT ---
+    // --- INITIALIZATION ---
     async function init() {
         try {
             const res = await fetch('jlpt_n3_expanded.json');
             state.db = await res.json();
-            const saved = localStorage.getItem('jlpt_swipe_pro');
+            
+            const saved = localStorage.getItem('jlpt_master_state');
             if(saved) {
                 state = {...state, ...JSON.parse(saved)};
-                if(state.phase !== 'tutorial') startApp();
+                state.bookmarks = new Set(state.bookmarks);
+                if(state.phase === 'main') startApp();
                 else renderTutorialCard();
             } else {
                 renderTutorialCard();
             }
-        } catch (e) { console.error("데이터 로드 실패", e); }
+        } catch (e) { 
+            console.error("데이터 로딩 실패. 목업 데이터를 생성합니다.");
+            state.db = Array.from({length: 50}, (_, i) => ({
+                id: i, level: 'N3', kanji: '単語'+i, furigana: 'たんご', meaning: '단어'+i,
+                pos: '명사', example_jp: 'これは例文입니다.', example_kr: '이것은 예문입니다.', tips: [{meaning:'팁입니다'}]
+            }));
+            renderTutorialCard();
+        }
     }
 
-    // --- UI ENGINE ---
+    // --- SWIPE ENGINE ---
     function renderCard(containerId, word) {
         const container = document.getElementById(containerId);
         container.innerHTML = '';
         const card = document.createElement('div');
         card.className = 'word-card';
+        const isBookmarked = state.bookmarks.has(word.id);
+        
         card.innerHTML = `
             <div class="swipe-overlay left"><h2>✅ 아는 단어</h2><p>라이브러리에 넣을게요</p></div>
             <div class="swipe-overlay right"><h2>🃏 학습할 단어</h2><p>플래시 카드에서 만나요</p></div>
-            <div class="c-img"><span>${EMOJIS[word.id % 6]}</span><div class="c-level-tag">${word.level}</div></div>
+            <div class="c-img">
+                <span>${PLACEHOLDER_EMOJIS[word.id % PLACEHOLDER_EMOJIS.length]}</span>
+                <div class="c-level-tag">${word.level}</div>
+                <div class="c-bookmark ${isBookmarked ? 'active' : ''}" onclick="toggleBookmark(${word.id}, this)">🔖</div>
+            </div>
             <div class="c-body">
-                <div style="color: var(--accent); font-size: 14px;">${word.furigana}</div>
+                <div class="c-furi">${word.furigana}</div>
                 <div class="c-kanji">${word.kanji}</div>
                 <div class="c-meaning">${word.meaning}</div>
+                <div class="c-pos">[${word.pos}]</div>
                 <div class="c-ex">
-                    <div style="font-family:'Noto Sans JP'; font-size:15px; margin-bottom:5px;">${word.example_jp}</div>
-                    <div style="font-size:13px; color: var(--text-sub);">${word.example_kr}</div>
+                    <div style="font-family:'Noto Sans JP'; font-size:15px; margin-bottom:6px; color: var(--text-main); line-height: 1.4;">${word.example_jp}</div>
+                    <div style="font-size:13px; color: var(--text-sub); line-height: 1.4;">${word.example_kr}</div>
                 </div>
             </div>
-            <div style="padding: 15px; display:flex; justify-content: space-around; border-top: 1px solid var(--border);">
-                <button onclick="speak('${word.kanji}')">🔊 TTS</button>
-                <button onclick="alert('관련어: ${word.tips[0]?.meaning || "없음"}')">💡 팁</button>
-                <button onclick="this.innerText='🔖'">🏷️ 북마크</button>
+            <div style="padding: 15px 20px; display:flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02);">
+                <button onclick="speak('${word.kanji}')" style="background:none; color: var(--text-sub); font-weight: 700;">🔊 듣기</button>
+                <button onclick="alert('💡 팁: ${word.tips[0]?.meaning || "내용 없음"}')" style="background:none; color: var(--accent2); font-weight: 700;">💡 팁</button>
             </div>
         `;
         container.appendChild(card);
-        bindSwipe(card);
+        bindSwipeEvents(card);
     }
 
-    function bindSwipe(card) {
+    function bindSwipeEvents(card) {
         let startX = 0, moveX = 0;
-        card.addEventListener('touchstart', e => startX = e.touches[0].clientX);
-        card.addEventListener('touchmove', e => {
-            moveX = e.touches[0].clientX - startX;
+        const handleStart = (e) => {
+            startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            card.style.transition = 'none';
+        };
+        const handleMove = (e) => {
+            if (!startX) return;
+            moveX = (e.type.includes('touch') ? e.touches[0].clientX : e.clientX) - startX;
             let rot = moveX / 15;
             card.style.transform = `translateX(${moveX}px) rotate(${rot}deg)`;
-            if(moveX < -50) card.classList.add('sw-left');
-            else if(moveX > 50) card.classList.add('sw-right');
+            if(moveX < -60) card.classList.add('sw-left');
+            else if(moveX > 60) card.classList.add('sw-right');
             else card.classList.remove('sw-left', 'sw-right');
-        });
-        card.addEventListener('touchend', () => {
-            if(Math.abs(moveX) > 120) handleAction(moveX < 0 ? 'left' : 'right');
-            else { card.style.transform = ''; card.classList.remove('sw-left', 'sw-right'); }
-            moveX = 0;
-        });
+        };
+        const handleEnd = () => {
+            if (Math.abs(moveX) > 130) {
+                handleAction(moveX < 0 ? 'left' : 'right');
+            } else {
+                card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                card.style.transform = '';
+                card.classList.remove('sw-left', 'sw-right');
+            }
+            startX = 0; moveX = 0;
+        };
+        card.addEventListener('touchstart', handleStart); card.addEventListener('mousedown', handleStart);
+        window.addEventListener('touchmove', handleMove); window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchend', handleEnd); window.addEventListener('mouseup', handleEnd);
     }
 
     function handleAction(dir) {
@@ -253,70 +296,86 @@
             state.tutorialIdx++;
             if(state.tutorialIdx >= 6) {
                 state.phase = 'goal';
-                showScreen('goal');
+                navigate('goal');
             } else renderTutorialCard();
         } else {
             const word = state.skimmingQueue[state.currentSkimIdx];
             if(dir === 'left') {
                 if(!state.library.find(w => w.id === word.id)) state.library.push(word);
             }
+            // 히스토리 업데이트
+            const today = new Date().toDateString();
+            state.studyHistory[today] = (state.studyHistory[today] || 0) + 1;
+            
             state.currentSkimIdx++;
             if(state.currentSkimIdx >= state.dailyGoal) {
-                const today = new Date().toDateString();
-                state.history[today] = true;
-                alert("오늘의 목표 달성!");
+                alert("오늘의 스킹 목표를 달성했습니다! 🥳");
                 navigate('home');
             } else renderSkimCard();
         }
         save();
     }
 
-    // --- LOGIC ---
+    // --- GOAL LOGIC ---
     function setGoal(key, val, el) {
         state[key] = val;
         if(el) {
-            el.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+            el.parentElement.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
             el.classList.add('selected');
         }
     }
 
     function finishGoalSetting() {
+        if(!state.examDate || !state.dailyGoal) {
+            alert("모든 목표 정보를 입력해주세요!");
+            return;
+        }
         state.phase = 'main';
         startApp();
     }
 
     function startApp() {
-        showScreen('home');
+        navigate('home');
         document.getElementById('bottom-nav').classList.remove('hidden');
         document.getElementById('home-title').innerText = `JLPT ${state.targetLevel} 마스터`;
         
-        // D-Day
-        if(state.examDate) {
-            const d = Math.ceil((new Date(state.examDate) - new Date()) / (86400000));
-            document.getElementById('home-dday').innerText = `D-${d}`;
-        }
+        // D-Day 계산
+        const d = Math.ceil((new Date(state.examDate) - new Date()) / 86400000);
+        document.getElementById('home-dday').innerText = d >= 0 ? `D-${d}` : `D+${Math.abs(d)}`;
 
         renderCalendar();
-        // 스키밍 큐 설정
+        // 목표 레벨 단어 큐 생성
         state.skimmingQueue = state.db.filter(w => w.level === state.targetLevel).slice(0, state.dailyGoal);
         state.currentSkimIdx = 0;
+        save();
     }
 
+    // --- CALENDAR LOGIC (Vertical) ---
     function renderCalendar() {
         const container = document.getElementById('main-calendar');
         container.innerHTML = '';
         const today = new Date();
-        for(let i=0; i<3; i++) { // 3개월 생성
+        
+        // 현재월 기준 전후 6개월치 생성
+        for(let i=-1; i<6; i++) {
             const m = new Date(today.getFullYear(), today.getMonth() + i, 1);
             const monthDiv = document.createElement('div');
             monthDiv.className = 'cal-month';
             monthDiv.innerHTML = `<h3>${m.getFullYear()}년 ${m.getMonth()+1}월</h3><div class="cal-grid"></div>`;
+            
             const grid = monthDiv.querySelector('.cal-grid');
+            const firstDay = new Date(m.getFullYear(), m.getMonth(), 1).getDay();
             const daysInMonth = new Date(m.getFullYear(), m.getMonth()+1, 0).getDate();
+            
+            for(let empty=0; empty<firstDay; empty++) grid.appendChild(document.createElement('div'));
+            
             for(let d=1; d<=daysInMonth; d++) {
-                const dateStr = new Date(m.getFullYear(), m.getMonth(), d).toDateString();
+                const dateObj = new Date(m.getFullYear(), m.getMonth(), d);
+                const dateStr = dateObj.toDateString();
                 const dayDiv = document.createElement('div');
-                dayDiv.className = `cal-day ${dateStr === today.toDateString() ? 'today' : ''} ${state.history[dateStr] ? 'done' : ''}`;
+                dayDiv.className = 'cal-day';
+                if(dateStr === today.toDateString()) dayDiv.classList.add('today');
+                if(state.studyHistory[dateStr] >= state.dailyGoal) dayDiv.classList.add('done');
                 dayDiv.innerText = d;
                 grid.appendChild(dayDiv);
             }
@@ -324,38 +383,49 @@
         }
     }
 
-    function renderTutorialCard() {
-        document.getElementById('tut-progress').innerText = `튜토리얼 (${state.tutorialIdx+1}/6)`;
-        renderCard('tut-zone', state.db[state.tutorialIdx] || state.db[0]);
-    }
-
-    function renderSkimCard() {
-        document.getElementById('skim-progress').innerText = `${state.currentSkimIdx+1} / ${state.dailyGoal}`;
-        document.getElementById('skim-level-tag').innerText = state.targetLevel;
-        renderCard('skim-zone', state.skimmingQueue[state.currentSkimIdx] || state.db[0]);
-    }
-
+    // --- LIBRARY ---
     function renderLibrary(lv) {
         const list = document.getElementById('lib-list');
         list.innerHTML = '';
         const filtered = state.library.filter(w => w.level === lv);
+        
+        if(filtered.length === 0) {
+            list.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:20px;">저장된 단어가 없습니다.</p>`;
+            return;
+        }
+
         filtered.forEach(w => {
             const card = document.createElement('div');
             card.className = 'cal-month';
-            card.style.cssText = 'margin-bottom:10px; padding:15px; text-align:left;';
-            card.innerHTML = `<b>${w.kanji}</b> [${w.furigana}]<br><small>${w.meaning}</small>`;
+            card.style.cssText = 'margin-bottom:12px; padding:20px; text-align:left; scroll-snap-align: none;';
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="color:var(--accent); font-size:12px; font-weight:700;">${w.furigana}</span>
+                    <span style="color:var(--primary); font-size:11px; font-weight:900;">${w.level}</span>
+                </div>
+                <div style="font-size:22px; font-weight:900; margin-bottom:5px;">${w.kanji}</div>
+                <div style="font-size:16px; font-weight:700; color:var(--text-main); margin-bottom:12px;">${w.meaning}</div>
+                <div style="font-size:13px; color:var(--text-sub); border-top: 1px solid var(--border); padding-top:10px;">${w.example_jp}</div>
+            `;
             list.appendChild(card);
         });
     }
 
-    // --- NAVIGATION ---
-    function showScreen(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        document.getElementById('screen-'+id).classList.remove('hidden');
+    // --- HELPERS ---
+    function renderTutorialCard() {
+        document.getElementById('tut-progress').innerText = `테스트 학습 (${state.tutorialIdx+1}/6)`;
+        renderCard('tut-zone', state.db[state.tutorialIdx] || state.db[0]);
+    }
+
+    function renderSkimCard() {
+        document.getElementById('skim-progress-txt').innerText = `${state.currentSkimIdx+1} / ${state.dailyGoal}`;
+        document.getElementById('skim-level-tag').innerText = state.targetLevel;
+        renderCard('skim-zone', state.skimmingQueue[state.currentSkimIdx] || state.db[0]);
     }
 
     function navigate(id, el) {
-        showScreen(id);
+        document.querySelectorAll('.screen').forEach(s => s.classList.replace('active', 'hidden'));
+        document.getElementById('screen-'+id).classList.replace('hidden', 'active');
         if(id === 'skimming') renderSkimCard();
         if(id === 'home') renderCalendar();
         if(id === 'library') renderLibrary(state.targetLevel);
@@ -365,13 +435,27 @@
         }
     }
 
+    function toggleBookmark(id, el) {
+        if(state.bookmarks.has(id)) {
+            state.bookmarks.delete(id);
+            el.classList.remove('active');
+        } else {
+            state.bookmarks.add(id);
+            el.classList.add('active');
+        }
+        save();
+    }
+
     function speak(text) {
         const u = new SpeechSynthesisUtterance(text);
         u.lang = 'ja-JP';
         speechSynthesis.speak(u);
     }
 
-    function save() { localStorage.setItem('jlpt_swipe_pro', JSON.stringify(state)); }
+    function save() { 
+        const toSave = {...state, bookmarks: Array.from(state.bookmarks)};
+        localStorage.setItem('jlpt_master_state', JSON.stringify(toSave)); 
+    }
 
     init();
 </script>
