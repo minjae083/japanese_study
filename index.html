@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JLPT 스와이프 마스터 Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Noto+Sans+KR:wght@400;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  /* 🎨 글로벌 & 프리미엄 다크 테마 */
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --primary: #FF6B6B; --accent: #4ECDC4; --bg: #121213; --card-bg: #1E1E1F;
+    --text-main: #FFFFFF; --text-sub: #9CA3AF;
+    --btn-know: #0B6E6A; --btn-know-bg: #E0F7F6;
+    --btn-learn: #C0392B; --btn-learn-bg: #FFE5E5;
+  }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; display: flex; justify-content: center; }
+  
+  #app { width: 100%; max-width: 430px; height: 100vh; position: relative; display: flex; flex-direction: column; background: var(--bg); box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+
+  /* 💡 상단 헤더 */
+  .top-bar { padding: 20px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+  .top-bar h2 { font-size: 18px; font-weight: 700; }
+  .progress-badge { font-family: 'DM Mono'; font-size: 14px; color: var(--accent); background: rgba(78, 205, 196, 0.1); padding: 5px 12px; border-radius: 20px; }
+
+  /* 🎴 스와이프 카드 컨테이너 */
+  .card-container { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 20px; perspective: 1000px; }
+  
+  .swipe-card { 
+    position: absolute; width: 100%; max-width: 360px; height: 75vh;
+    background: var(--card-bg); border-radius: 30px; padding: 25px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4); display: flex; flex-direction: column;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-origin: 50% 100%; cursor: grab; z-index: 2;
+    border: 1px solid rgba(255,255,255,0.05); overflow-y: auto;
+  }
+  .swipe-card:active { cursor: grabbing; transition: none; } /* 드래그 중에는 애니메이션 해제 */
+
+  /* 카드 내부 UI */
+  .card-image-box { width: 100%; height: 180px; border-radius: 20px; background-color: #2A2A2B; background-image: url('https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80'); background-size: cover; background-position: center; position: relative; margin-bottom: 20px; flex-shrink: 0; }
+  .badge-pos { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; backdrop-filter: blur(5px); }
+  
+  .word-header { text-align: center; margin-bottom: 20px; }
+  .furigana { color: var(--accent); font-size: 16px; font-weight: 700; letter-spacing: 2px; }
+  .kanji { font-family: 'Noto Sans JP', sans-serif; font-size: 48px; font-weight: 900; margin: 5px 0; color: white; }
+  .meaning { font-size: 20px; color: var(--text-sub); }
+
+  .example-box { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 18px; margin-top: auto; border-left: 4px solid var(--accent); }
+  .example-jp { font-family: 'Noto Sans JP', sans-serif; font-size: 15px; line-height: 1.8; margin-bottom: 10px; }
+  .example-kr { font-size: 14px; color: var(--text-sub); }
+  
+  /* Ruby (후리가나) 스타일링 */
+  ruby { ruby-align: center; }
+  rt { font-size: 10px; color: var(--accent); transform: translateY(-2px); }
+
+  /* 🔘 하단 액션 버튼 */
+  .action-btns { padding: 0 20px 30px; display: flex; gap: 15px; z-index: 10; }
+  .action-btns button { flex: 1; padding: 18px; border-radius: 20px; border: none; font-weight: 700; font-size: 16px; cursor: pointer; transition: transform 0.1s; }
+  .action-btns button:active { transform: scale(0.95); }
+  .btn-know { background: var(--btn-know-bg); color: var(--btn-know); }
+  .btn-learn { background: var(--btn-learn-bg); color: var(--btn-learn); }
+
+  /* 스와이프 상태 오버레이 (블러 효과) */
+  .overlay-status { position: absolute; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); border-radius: 30px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+  .swipe-card.right .overlay-status { opacity: 1; color: var(--btn-know); background: rgba(224, 247, 246, 0.8); }
+  .swipe-card.left .overlay-status { opacity: 1; color: var(--btn-learn); background: rgba(255, 229, 229, 0.8); }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="top-bar">
+    <h2>N3 스키밍 모드</h2>
+    <div class="progress-badge" id="progress-text">0 / 0</div>
+  </div>
+
+  <div class="card-container" id="card-area">
+    </div>
+
+  <div class="action-btns">
+    <button class="btn-learn" onclick="triggerSwipe(-1)">학습할게요</button>
+    <button class="btn-know" onclick="triggerSwipe(1)">알고 있어요</button>
+  </div>
+</div>
+
+<script>
+let wordData = [];
+let currentIndex = 0;
+const cardArea = document.getElementById('card-area');
+const progressText = document.getElementById('progress-text');
+
+// 1. JSON 데이터 불러오기 (Live Server 필요)
+async function loadData() {
+  try {
+    const response = await fetch('jlpt_n3_expanded.json');
+    wordData = await response.json();
+    renderCard();
+  } catch (error) {
+    console.error("데이터 로드 실패:", error);
+    cardArea.innerHTML = `<div style="color:white; text-align:center;">데이터를 불러올 수 없습니다.<br>VS Code Live Server 환경인지 확인해주세요.</div>`;
+  }
+}
+
+// 2. 예문 속 한자에 후리가나(Ruby) 씌우기
+function generateRubyText(text, spellings) {
+  if (!spellings || spellings.length === 0) return text;
+  let result = text;
+  spellings.forEach(sp => {
+    // 엑셀에서 뽑아온 alt_spellings 기반으로 자동 치환
+    const rubyTag = `<ruby>${sp.kanji}<rt>${sp.furigana}</rt></ruby>`;
+    result = result.replace(sp.kanji, rubyTag);
+  });
+  return result;
+}
+
+// 3. 카드 렌더링 로직
+function renderCard() {
+  if (currentIndex >= wordData.length) {
+    cardArea.innerHTML = `<h2 style="color:white;">오늘의 스키밍 완료! 🎉</h2>`;
+    return;
+  }
+
+  const word = wordData[currentIndex];
+  progressText.innerText = `${currentIndex + 1} / ${wordData.length}`;
+  
+  // 예문 후리가나 처리
+  const jpExampleWithRuby = generateRubyText(word.example_jp, word.alt_spellings);
+
+  const card = document.createElement('div');
+  card.className = 'swipe-card';
+  card.innerHTML = `
+    <div class="overlay-status" id="overlay"></div>
+    <div class="card-image-box">
+      <div class="badge-pos">${word.pos}</div>
+    </div>
+    <div class="word-header">
+      <div class="furigana">${word.furigana}</div>
+      <div class="kanji">${word.kanji}</div>
+      <div class="meaning">${word.meaning}</div>
+    </div>
+    <div class="example-box">
+      <div class="example-jp">${jpExampleWithRuby}</div>
+      <div class="example-kr">${word.example_kr}</div>
+    </div>
+  `;
+
+  cardArea.innerHTML = '';
+  cardArea.appendChild(card);
+  
+  initSwipe(card);
+}
+
+// 4. 스와이프 & 터치 물리 엔진 로직
+function initSwipe(card) {
+  let startX = 0, currentX = 0, isDragging = false;
+  const overlay = card.querySelector('#overlay');
+
+  const onTouchStart = (e) => {
+    isDragging = true;
+    startX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
+    card.style.transition = 'none';
+  };
+
+  const onTouchMove = (e) => {
+    if (!isDragging) return;
+    const x = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
+    currentX = x - startX;
+    
+    // 이동 거리에 따른 회전각 계산 (부드러운 물리 엔진)
+    const rotate = currentX * 0.05;
+    card.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
+
+    // 오버레이 및 블러 효과 처리
+    if (currentX > 50) {
+      card.classList.add('right'); card.classList.remove('left');
+      overlay.innerText = '알고 있어요';
+    } else if (currentX < -50) {
+      card.classList.add('left'); card.classList.remove('right');
+      overlay.innerText = '학습할게요';
+    } else {
+      card.classList.remove('right', 'left');
+    }
+  };
+
+  const onTouchEnd = () => {
+    isDragging = false;
+    card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    
+    // 임계값(100px) 이상 드래그 시 카드 날리기
+    if (currentX > 100) {
+      swipeOut(1); // 오른쪽
+    } else if (currentX < -100) {
+      swipeOut(-1); // 왼쪽
+    } else {
+      // 제자리 복귀
+      card.style.transform = 'translateX(0px) rotate(0deg)';
+      card.classList.remove('right', 'left');
+    }
+    currentX = 0;
+  };
+
+  card.addEventListener('mousedown', onTouchStart);
+  window.addEventListener('mousemove', onTouchMove);
+  window.addEventListener('mouseup', onTouchEnd);
+  
+  card.addEventListener('touchstart', onTouchStart);
+  card.addEventListener('touchmove', onTouchMove);
+  card.addEventListener('touchend', onTouchEnd);
+}
+
+// 5. 카드 날아가기 애니메이션 & 다음 단어 로드
+function swipeOut(direction) {
+  const card = document.querySelector('.swipe-card');
+  const moveX = direction * window.innerWidth;
+  const rotate = direction * 30;
+  
+  card.style.transform = `translateX(${moveX}px) rotate(${rotate}deg)`;
+  card.style.opacity = '0';
+  
+  // 데이터 로직 처리 (추후 LocalStorage 저장 로직 연동)
+  if(direction === 1) {
+    console.log("아는 단어 처리됨");
+  } else {
+    console.log("학습 단어 처리됨 (플래시카드로 이동 대기)");
+  }
+
+  setTimeout(() => {
+    currentIndex++;
+    renderCard();
+  }, 300);
+}
+
+// 하단 버튼 클릭 시 스와이프 트리거
+function triggerSwipe(direction) {
+  const card = document.querySelector('.swipe-card');
+  const overlay = card.querySelector('#overlay');
+  
+  card.style.transition = 'transform 0.4s ease-out';
+  if(direction === 1) {
+    card.classList.add('right'); overlay.innerText = '알고 있어요';
+  } else {
+    card.classList.add('left'); overlay.innerText = '학습할게요';
+  }
+  
+  swipeOut(direction);
+}
+
+// 앱 시작
+window.onload = loadData;
+</script>
+</body>
+</html>
