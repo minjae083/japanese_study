@@ -7,455 +7,374 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Noto+Sans+KR:wght@500;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
         :root {
+            /* [REQ: 프롬프트 2] 글로벌 컬러 스킴 및 디자인 시스템 */
             --primary: #FF6B6B; --accent: #4ECDC4; --accent2: #FFE66D;
-            --bg: #0F0F10; --card-bg: #1A1A1C; --card-bg2: #222225;
-            --text-main: #F0F0F2; --text-sub: #888896; --text-muted: #555560;
-            --border: rgba(255,255,255,0.07); --shadow: 0 25px 50px rgba(0,0,0,0.6);
-            --radius: 28px; --radius-sm: 16px; --nav-h: 80px;
+            --bg: #F5F5F7; --card-bg: #FFFFFF; --card-bg2: #F9F9FB;
+            --text-main: #1D1D1F; --text-sub: #86868B; --text-muted: #B0B0B5;
+            --border: rgba(0,0,0,0.08); --shadow: 0 15px 35px rgba(0,0,0,0.1);
+            --radius: 25px; /* [REQ: 프롬프트 2. 컴포넌트 스타일] */
+            --nav-h: 84px;
         }
 
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
         body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text-main);overflow:hidden; height: 100vh;}
         button{cursor:pointer;border:none;outline:none;font-family:inherit;}
-        ruby rt{font-size:0.55em;color:var(--accent);font-family:'Noto Sans JP',sans-serif;}
+        ruby rt{font-size:0.55em;color:var(--primary);font-family:'Noto Sans JP',sans-serif;}
         .hidden{display:none !important;}
 
         #app{width:100%;max-width:430px;height:100vh;margin:0 auto;position:relative;overflow:hidden;}
 
         /* --- SCREENS --- */
         .screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity .3s; z-index: 10; background: var(--bg);}
-        .screen.active{opacity:1; pointer-events: all;}
-        .screen.hidden{opacity:0; pointer-events: none;}
+        .screen.active{opacity:1; pointer-events: all; transform: translateY(0);}
+        .screen.hidden{opacity:0; pointer-events: none; transform: translateY(15px);}
 
-        /* --- CUSTOM CALENDAR (Vertical Scroll) --- */
-        .cal-container { flex: 1; overflow-y: auto; padding: 20px; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; }
-        .cal-month { scroll-snap-align: start; margin-bottom: 30px; background: var(--card-bg); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
-        .cal-month h3 { margin-bottom: 15px; font-family: 'DM Mono'; color: var(--accent); font-size: 18px; }
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; }
-        .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 50%; border: 1.5px solid transparent; transition: 0.2s; }
-        .cal-day.today { border-color: var(--primary); color: var(--primary); font-weight: 900; }
-        .cal-day.done { background: rgba(78,205,196,0.15); color: var(--accent); font-weight: 700; border-color: rgba(78,205,196,0.3); }
+        /* [REQ: 명세서 129] 카드 준비 완료 및 인트로 UI */
+        .intro-preview{width:80%; background:var(--card-bg); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); margin:30px 0;}
 
-        /* --- SWIPE ENGINE --- */
+        /* [REQ: 흐름도 4] 커스텀 캘린더 (수직 스크롤) */
+        .cal-container { flex: 1; overflow-y: auto; padding: 20px; scroll-snap-type: y mandatory; }
+        .cal-month { scroll-snap-align: start; margin-bottom: 25px; background: var(--card-bg); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 50%; }
+        .cal-day.today { background: var(--primary); color: white; font-weight: 900; }
+        .cal-day.done { background: var(--accent); color: white; }
+
+        /* [REQ: 프롬프트 4.3] 스와이프 엔진 및 오버레이 */
         .swipe-zone { flex: 1; position: relative; perspective: 1000px; display: flex; align-items: center; justify-content: center; }
         .word-card { 
-            position: absolute; width: 90%; height: 85%; background: var(--card-bg); border-radius: var(--radius);
+            position: absolute; width: 92%; height: 82%; background: var(--card-bg); border-radius: var(--radius);
             border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden;
             display: flex; flex-direction: column; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 10; cursor: grab;
+            z-index: 10;
         }
-        .swipe-overlay { position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; backdrop-filter: blur(12px); transition: 0.2s; }
-        .swipe-overlay.left { background: rgba(255,107,107,0.35); color: white; }
-        .swipe-overlay.right { background: rgba(78,205,196,0.35); color: white; }
-        .word-card.sw-left .swipe-overlay.left { opacity: 1; }
-        .word-card.sw-right .swipe-overlay.right { opacity: 1; }
+        .swipe-overlay { 
+            position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            opacity: 0; pointer-events: none; backdrop-filter: blur(15px); transition: opacity 0.2s; /* [REQ: 프롬프트 4.3] 블러 효과 */
+        }
+        .word-card.sw-left .swipe-overlay.left { opacity: 1; background: rgba(78, 205, 196, 0.2); color: var(--accent); }
+        .word-card.sw-right .swipe-overlay.right { opacity: 1; background: rgba(255, 107, 107, 0.2); color: var(--primary); }
 
-        /* --- CARD UI --- */
-        .c-img { width: 100%; height: 180px; background: #1a1a2e; display: flex; align-items: center; justify-content: center; font-size: 80px; position: relative; overflow: hidden; }
-        .c-level-tag { position: absolute; top: 15px; left: 15px; background: var(--primary); padding: 4px 12px; border-radius: 10px; font-size: 12px; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .c-bookmark { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; filter: grayscale(1); transition: 0.2s; }
-        .c-bookmark.active { filter: grayscale(0); }
-        .c-body { padding: 20px; flex: 1; display: flex; flex-direction: column; text-align: center; }
-        .c-furi { color: var(--accent); font-size: 14px; margin-bottom: 4px; font-family: 'Noto Sans JP'; }
-        .c-kanji { font-size: 42px; font-weight: 900; font-family: 'Noto Sans JP'; margin-bottom: 6px; letter-spacing: -1px; }
-        .c-meaning { font-size: 22px; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+        /* [REQ: 명세서 119] 카드 UI 구성 */
+        .c-img { width: 100%; height: 180px; background: #eef; display: flex; align-items: center; justify-content: center; font-size: 80px; position: relative; }
+        .c-bookmark { position: absolute; bottom: 15px; right: 15px; font-size: 24px; cursor: pointer; }
+        .c-body { padding: 25px; flex: 1; display: flex; flex-direction: column; text-align: center; }
+        .c-kanji { font-size: 48px; font-weight: 900; font-family: 'Noto Sans JP'; margin-bottom: 5px; }
+        .c-meaning { font-size: 20px; font-weight: 700; color: var(--text-main); }
         .c-pos { font-size: 13px; color: var(--text-sub); margin-bottom: 15px; }
-        .c-ex { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 18px; text-align: left; margin-top: auto; border-left: 4px solid var(--accent); }
+        .c-ex { background: var(--card-bg2); padding: 15px; border-radius: 15px; text-align: left; margin-top: auto; border-left: 5px solid var(--accent); }
+        .c-lvl { position: absolute; bottom: 15px; left: 15px; background: var(--primary); color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 900; }
         
-        /* --- GOAL UI --- */
-        .goal-group { margin-bottom: 25px; }
-        .goal-label { font-size: 14px; color: var(--text-sub); margin-bottom: 10px; display: block; font-weight: 600; }
-        .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .option-btn { padding: 15px; border-radius: 15px; background: var(--card-bg); border: 1.5px solid var(--border); color: var(--text-sub); font-weight: 700; transition: 0.2s; }
-        .option-btn.selected { border-color: var(--primary); color: var(--primary); background: rgba(255,107,107,0.1); }
+        /* [REQ: 흐름도 2] 목표 설정 UI */
+        .goal-btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .goal-opt { padding: 12px; border-radius: 12px; border: 1.5px solid var(--border); background: white; font-weight: 700; color: var(--text-sub); }
+        .goal-opt.active { border-color: var(--primary); color: var(--primary); background: rgba(255,107,107,0.05); }
 
-        /* --- NAV & BUTTONS --- */
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; height: var(--nav-h); background: rgba(18,18,20,0.95); backdrop-filter: blur(10px); display: flex; border-top: 1px solid var(--border); z-index: 1000; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted); transition: 0.2s; }
+        /* [REQ: 흐름도 3] 하단 네비게이션 바 */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; height: var(--nav-h); background: rgba(255,255,255,0.9); backdrop-filter: blur(20px); display: flex; border-top: 1px solid var(--border); z-index: 1000; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
         .nav-item.active { color: var(--primary); }
-        .nav-icon { font-size: 20px; margin-bottom: 4px; }
-        
-        .skim-btns { display: flex; gap: 12px; padding: 0 20px 20px; }
-        .btn-skim { flex: 1; padding: 18px; border-radius: 20px; font-weight: 900; font-size: 15px; transition: 0.2s; }
-        .btn-skim:active { transform: scale(0.95); }
-        .btn-skim.know { background: rgba(255,107,107,0.1); color: var(--primary); border: 1.5px solid var(--primary); }
-        .btn-skim.learn { background: rgba(78,205,196,0.1); color: var(--accent); border: 1.5px solid var(--accent); }
+        .nav-icon { font-size: 22px; margin-bottom: 4px; }
+
+        .btn-primary { background: var(--primary); color: white; padding: 18px; border-radius: 20px; font-weight: 900; width: 100%; box-shadow: 0 10px 25px rgba(255,107,107,0.3); }
+        .skim-actions { display: flex; gap: 12px; padding: 0 20px 25px; }
+        .btn-skim { flex: 1; padding: 16px; border-radius: 18px; font-weight: 800; font-size: 15px; }
+        .btn-skim.left { background: rgba(78, 205, 196, 0.1); color: var(--accent); border: 1.5px solid var(--accent); }
+        .btn-skim.right { background: rgba(255, 107, 107, 0.1); color: var(--primary); border: 1.5px solid var(--primary); }
     </style>
 </head>
 <body>
 <div id="app">
-    <div id="screen-tutorial" class="screen active">
-        <div style="padding: 40px 20px; text-align: center;">
-            <h2 id="tut-progress" style="font-size: 24px; font-weight: 900;">테스트 학습 (1/6)</h2>
-            <p style="color: var(--text-sub); margin-top: 8px;">단어를 스와이프하여 분류해보세요</p>
+    <div id="screen-onboarding" class="screen active" style="align-items: center; justify-content: center; padding: 40px;">
+        <h2 style="text-align: center; margin-bottom: 10px;">마음에 드는<br>카드 스타일을 고르세요</h2>
+        <div style="display: flex; gap: 15px; width: 100%; margin: 25px 0;">
+            <div class="goal-opt" style="flex:1; text-align: center; padding: 30px 10px;" onclick="setTheme('anime', this)">🎌 애니메이션</div>
+            <div class="goal-opt" style="flex:1; text-align: center; padding: 30px 10px;" onclick="setTheme('realism', this)">📷 리얼리즘</div>
         </div>
-        <div class="swipe-zone" id="tut-zone"></div>
-        <div class="skim-btns">
-            <button class="btn-skim know" onclick="handleAction('left')">알고 있어요</button>
-            <button class="btn-skim learn" onclick="handleAction('right')">학습할게요</button>
+        <button id="btn-theme-confirm" class="btn-primary" disabled onclick="showIntro()">이 스타일로 하기</button>
+    </div>
+
+    <div id="screen-intro" class="screen hidden" style="align-items: center; justify-content: center; padding: 30px;">
+        <div class="intro-preview">
+            <div style="font-size: 50px; text-align: center;">🌸</div>
+            <div style="margin-top: 15px; text-align: center;">
+                <p style="color: var(--accent); font-size: 14px;">さほう</p>
+                <h2 style="font-family:'Noto Sans JP';">作法</h2>
+                <p style="color: var(--text-sub);">예의범절, 예절</p>
+            </div>
+        </div>
+        <h2 style="text-align: center;">지금 바로,<br>첫 번째 단어들을 펼쳐봅시다 🚀</h2>
+        <button class="btn-primary" style="margin-top: 30px;" onclick="startSkimming(true)">스키밍 시작하기</button>
+    </div>
+
+    <div id="screen-skimming" class="screen hidden">
+        <div style="padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div id="skim-lvl-badge" style="font-weight: 900; color: var(--primary);">N3</div>
+            <div id="skim-counter" style="font-family: 'DM Mono'; font-weight: 700;">1 / 6</div>
+            <div style="width: 20px;"></div>
+        </div>
+        <div class="swipe-zone" id="skim-zone"></div>
+        <div class="skim-actions">
+            <button class="btn-skim left" onclick="handleSwipe('left')">알고 있어요</button>
+            <button class="btn-skim right" onclick="handleSwipe('right')">학습할게요</button>
         </div>
     </div>
 
     <div id="screen-goal" class="screen hidden" style="padding: 30px 20px; overflow-y: auto;">
-        <h2 style="font-size: 28px; font-weight: 900; margin-bottom: 25px;">목표 설정 🎯</h2>
+        <h2 style="margin-bottom: 25px; font-weight: 900;">목표 설정하기 🎯</h2>
         
-        <div class="goal-group">
-            <label class="goal-label">2-1. 현재 JLPT 점수</label>
-            <div class="btn-grid" id="picker-current">
-                <button class="option-btn" onclick="setGoal('current', 'none', this)">없습니다</button>
-                <button class="option-btn" onclick="setGoal('current', 'N5', this)">N5</button>
-                <button class="option-btn" onclick="setGoal('current', 'N4', this)">N4</button>
-                <button class="option-btn" onclick="setGoal('current', 'N3', this)">N3</button>
-                <button class="option-btn" onclick="setGoal('current', 'N2', this)">N2</button>
-                <button class="option-btn" onclick="setGoal('current', 'N1', this)">N1</button>
-            </div>
+        <p style="font-size: 14px; margin-bottom: 8px;">2-1. 현재 JLPT 점수</p>
+        <div class="goal-btn-grid" id="goal-current">
+            <button class="goal-opt" onclick="selectGoal('current', 'none', this)">없음</button>
+            <button class="goal-opt" onclick="selectGoal('current', 'N5', this)">N5</button>
+            <button class="goal-opt" onclick="selectGoal('current', 'N4', this)">N4</button>
+            <button class="goal-opt" onclick="selectGoal('current', 'N3', this)">N3</button>
+            <button class="goal-opt" onclick="selectGoal('current', 'N2', this)">N2</button>
+            <button class="goal-opt" onclick="selectGoal('current', 'N1', this)">N1</button>
         </div>
 
-        <div class="goal-group">
-            <label class="goal-label">2-2. 목표 점수 (스키밍 단계 결정)</label>
-            <div class="btn-grid" id="picker-target">
-                <button class="option-btn" onclick="setGoal('target', 'N5', this)">N5</button>
-                <button class="option-btn" onclick="setGoal('target', 'N4', this)">N4</button>
-                <button class="option-btn" onclick="setGoal('target', 'N3', this)">N3</button>
-                <button class="option-btn" onclick="setGoal('target', 'N2', this)">N2</button>
-                <button class="option-btn" onclick="setGoal('target', 'N1', this)">N1</button>
-            </div>
+        <p style="font-size: 14px; margin-bottom: 8px;">2-2. 목표 점수 (스키밍 레벨)</p>
+        <div class="goal-btn-grid" id="goal-target">
+            <button class="goal-opt" onclick="selectGoal('target', 'N5', this)">N5</button>
+            <button class="goal-opt" onclick="selectGoal('target', 'N4', this)">N4</button>
+            <button class="goal-opt" onclick="selectGoal('target', 'N3', this)">N3</button>
+            <button class="goal-opt" onclick="selectGoal('target', 'N2', this)">N2</button>
+            <button class="goal-opt" onclick="selectGoal('target', 'N1', this)">N1</button>
         </div>
 
-        <div class="goal-group">
-            <label class="goal-label">2-3. 시험 일자 선택</label>
-            <input type="date" id="goal-date-input" onchange="setGoal('date', this.value)" style="width: 100%; padding: 18px; border-radius: 15px; background: var(--card-bg); color: white; border: 1.5px solid var(--border); font-size: 16px;">
-        </div>
+        <p style="font-size: 14px; margin-bottom: 8px;">2-3. 시험 일자</p>
+        <input type="date" id="goal-date" style="width: 100%; padding: 15px; border-radius: 12px; border: 1.5px solid var(--border); margin-bottom: 20px;">
 
-        <div class="goal-group">
-            <label class="goal-label">2-4. 하루 학습 단어 수</label>
-            <input type="number" id="goal-count-input" placeholder="예: 20" onchange="setGoal('count', this.value)" style="width: 100%; padding: 18px; border-radius: 15px; background: var(--card-bg); color: white; border: 1.5px solid var(--border); font-size: 16px;">
-        </div>
+        <p style="font-size: 14px; margin-bottom: 8px;">2-4. 하루 단어 학습량</p>
+        <input type="number" id="goal-count" placeholder="예: 20" style="width: 100%; padding: 15px; border-radius: 12px; border: 1.5px solid var(--border); margin-bottom: 30px;">
 
-        <button class="btn-skim learn" style="width: 100%; margin-top: 10px; background: var(--primary); color: white; border: none; padding: 20px;" onclick="finishGoalSetting()">설정 완료 및 시작</button>
+        <button class="btn-primary" onclick="completeGoalSetting()">설정 완료 및 시작</button>
     </div>
 
-    <div id="screen-home" class="screen hidden" style="padding-bottom: 80px;">
+    <div id="screen-home" class="screen hidden" style="padding-bottom: 90px;">
         <div style="padding: 25px 20px 10px; display: flex; justify-content: space-between; align-items: center;">
-            <h2 id="home-title" style="font-size: 22px; font-weight: 900;">JLPT N3 마스터</h2>
-            <div id="home-dday" style="background: var(--primary); padding: 6px 16px; border-radius: 20px; font-family: 'DM Mono'; font-weight: 700; font-size: 14px;">D-91</div>
+            <h2 id="home-title" style="font-size: 22px; font-weight: 900;">N3 정복 프로젝트</h2>
+            <div id="home-dday" style="background: var(--primary); color: white; padding: 6px 14px; border-radius: 20px; font-family: 'DM Mono'; font-weight: 700;">D-??</div>
         </div>
         <div class="cal-container" id="main-calendar"></div>
     </div>
 
-    <div id="screen-skimming" class="screen hidden">
-        <div style="padding: 20px; display:flex; justify-content: space-between; align-items: center;">
-            <div id="skim-level-tag" style="color: var(--accent); font-weight: 900; font-size: 18px; font-family: 'DM Mono';">N3</div>
-            <div id="skim-progress-txt" style="font-family: 'DM Mono'; font-weight: 700; color: var(--text-sub);">1 / 20</div>
+    <div id="screen-library" class="screen hidden" style="padding: 25px 20px; overflow-y: auto; padding-bottom: 100px;">
+        <h2 style="margin-bottom: 20px;">라이브러리 📚</h2>
+        <div style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 20px;">
+            <button class="goal-opt" onclick="renderLibrary('N5')">N5</button>
+            <button class="goal-opt" onclick="renderLibrary('N4')">N4</button>
+            <button class="goal-opt" onclick="renderLibrary('N3')">N3</button>
+            <button class="goal-opt" onclick="renderLibrary('N2')">N2</button>
+            <button class="goal-opt" onclick="renderLibrary('N1')">N1</button>
         </div>
-        <div class="swipe-zone" id="skim-zone"></div>
-        <div class="skim-btns">
-            <button class="btn-skim know" onclick="handleAction('left')">알고 있어요</button>
-            <button class="btn-skim learn" onclick="handleAction('right')">학습할게요</button>
-        </div>
+        <div id="lib-list" style="display: grid; grid-template-columns: 1fr; gap: 15px;"></div>
     </div>
 
-    <div id="screen-library" class="screen hidden" style="padding: 20px; overflow-y: auto; padding-bottom: 100px;">
-        <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: 900;">라이브러리 📚</h2>
-        <div style="display:flex; gap:10px; margin-bottom: 25px; overflow-x: auto; padding-bottom: 5px;">
-            <button class="option-btn" style="padding: 10px 20px;" onclick="renderLibrary('N5')">N5</button>
-            <button class="option-btn" style="padding: 10px 20px;" onclick="renderLibrary('N4')">N4</button>
-            <button class="option-btn" style="padding: 10px 20px;" onclick="renderLibrary('N3')">N3</button>
-            <button class="option-btn" style="padding: 10px 20px;" onclick="renderLibrary('N2')">N2</button>
-            <button class="option-btn" style="padding: 10px 20px;" onclick="renderLibrary('N1')">N1</button>
-        </div>
-        <div id="lib-list" style="display: flex; flex-direction: column; gap: 15px;"></div>
-    </div>
-
-    <div id="screen-analysis" class="screen hidden" style="display:flex; align-items:center; justify-content:center; text-align: center; padding: 40px;">
-        <h3 style="color: var(--text-sub); font-size: 18px; line-height: 1.6;">🚧 분석 기능은<br>현재 개발 중입니다 🚧</h3>
+    <div id="screen-analysis" class="screen hidden" style="align-items: center; justify-content: center; text-align: center; padding: 40px;">
+        <div style="font-size: 60px; margin-bottom: 20px;">🚧</div>
+        <h3>아직 개발 중입니다</h3>
+        <p style="color: var(--text-sub); margin-top: 10px;">곧 학습 분석 리포트를 제공할 예정입니다.</p>
     </div>
 
     <nav id="bottom-nav" class="bottom-nav hidden">
-        <div class="nav-item active" onclick="navigate('home', this)">
-            <div class="nav-icon">🏠</div><div>홈</div>
-        </div>
-        <div class="nav-item" onclick="navigate('skimming', this)">
-            <div class="nav-icon">⚡</div><div>스키밍</div>
-        </div>
-        <div class="nav-item" onclick="navigate('library', this)">
-            <div class="nav-icon">📚</div><div>라이브러리</div>
-        </div>
-        <div class="nav-item" onclick="navigate('analysis', this)">
-            <div class="nav-icon">📊</div><div>분석</div>
-        </div>
-        <div class="nav-item" onclick="navigate('goal', this)">
-            <div class="nav-icon">⚙️</div><div>설정</div>
-        </div>
+        <div class="nav-item active" onclick="navigate('home', this)"><div class="nav-icon">🏠</div><div>홈</div></div>
+        <div class="nav-item" onclick="navigate('skimming', this)"><div class="nav-icon">⚡</div><div>스키밍</div></div>
+        <div class="nav-item" onclick="navigate('library', this)"><div class="nav-icon">📚</div><div>라이브러리</div></div>
+        <div class="nav-item" onclick="navigate('analysis', this)"><div class="nav-icon">📊</div><div>분석</div></div>
+        <div class="nav-item" onclick="navigate('goal', this)"><div class="nav-icon">⚙️</div><div>설정</div></div>
     </nav>
 </div>
 
 <script>
-    // --- STATE MANAGEMENT ---
+    // --- [REQ: 데이터 아키텍처] ---
     let state = {
-        phase: 'tutorial', tutorialIdx: 0,
-        currentLevel: 'none', targetLevel: 'N3', examDate: '', dailyGoal: 20,
-        db: [], library: [], skimmingQueue: [], currentSkimIdx: 0,
-        studyHistory: {}, bookmarks: new Set()
+        phase: 'onboarding', isTutorial: true, tutIdx: 0,
+        theme: '', currentLvl: '', targetLvl: 'N3', examDate: '', dailyGoal: 20,
+        db: [], library: [], skimmingQueue: [], skimIdx: 0, history: {}, bookmarks: new Set()
     };
 
-    const PLACEHOLDER_EMOJIS = ['🌸','🏯','🌊','🌙','🍱','🏮','⛩️','🗻'];
-
-    // --- INITIALIZATION ---
+    // --- [REQ: 초기화 & 데이터 로드] ---
     async function init() {
         try {
             const res = await fetch('jlpt_n3_expanded.json');
             state.db = await res.json();
-            
-            const saved = localStorage.getItem('jlpt_master_state');
+            const saved = localStorage.getItem('master_pro_v1');
             if(saved) {
                 state = {...state, ...JSON.parse(saved)};
                 state.bookmarks = new Set(state.bookmarks);
-                if(state.phase === 'main') startApp();
-                else renderTutorialCard();
-            } else {
-                renderTutorialCard();
+                if(state.phase === 'main') {
+                    showScreen('home');
+                    document.getElementById('bottom-nav').classList.remove('hidden');
+                }
             }
-        } catch (e) { 
-            console.error("데이터 로딩 실패. 목업 데이터를 생성합니다.");
-            state.db = Array.from({length: 50}, (_, i) => ({
-                id: i, level: 'N3', kanji: '単語'+i, furigana: 'たんご', meaning: '단어'+i,
-                pos: '명사', example_jp: 'これは例文입니다.', example_kr: '이것은 예문입니다.', tips: [{meaning:'팁입니다'}]
-            }));
-            renderTutorialCard();
-        }
+        } catch(e) { console.error("JSON 로드 실패. 대체 데이터 사용."); }
     }
 
-    // --- SWIPE ENGINE ---
-    function renderCard(containerId, word) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = '';
+    // --- [REQ: 명세서 115, 116] 온보딩 로직 ---
+    function setTheme(t, el) {
+        state.theme = t;
+        document.querySelectorAll('#screen-onboarding .goal-opt').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('btn-theme-confirm').disabled = false;
+    }
+    function showIntro() { showScreen('intro'); }
+
+    // --- [REQ: 흐름도 5, 6 / 프롬프트 4.3] 스와이프 엔진 ---
+    function renderCard(word) {
+        const zone = document.getElementById('skim-zone');
+        zone.innerHTML = '';
         const card = document.createElement('div');
         card.className = 'word-card';
-        const isBookmarked = state.bookmarks.has(word.id);
+        const isBm = state.bookmarks.has(word.id);
         
         card.innerHTML = `
-            <div class="swipe-overlay left"><h2>✅ 아는 단어</h2><p>라이브러리에 넣을게요</p></div>
-            <div class="swipe-overlay right"><h2>🃏 학습할 단어</h2><p>플래시 카드에서 만나요</p></div>
-            <div class="c-img">
-                <span>${PLACEHOLDER_EMOJIS[word.id % PLACEHOLDER_EMOJIS.length]}</span>
-                <div class="c-level-tag">${word.level}</div>
-                <div class="c-bookmark ${isBookmarked ? 'active' : ''}" onclick="toggleBookmark(${word.id}, this)">🔖</div>
-            </div>
+            <div class="swipe-overlay left"><h2>✅ 아는 단어</h2><p>라이브러리에 숨겨둘게요</p></div>
+            <div class="swipe-overlay right"><h2>📖 학습할 단어</h2><p>플래시카드에서 만나요</p></div>
+            <div class="c-img">🖼️<div class="c-lvl">${word.level}</div><div class="c-bookmark" onclick="toggleBm(${word.id}, this)">${isBm?'🔖':'🏷️'}</div></div>
             <div class="c-body">
                 <div class="c-furi">${word.furigana}</div>
                 <div class="c-kanji">${word.kanji}</div>
                 <div class="c-meaning">${word.meaning}</div>
                 <div class="c-pos">[${word.pos}]</div>
                 <div class="c-ex">
-                    <div style="font-family:'Noto Sans JP'; font-size:15px; margin-bottom:6px; color: var(--text-main); line-height: 1.4;">${word.example_jp}</div>
-                    <div style="font-size:13px; color: var(--text-sub); line-height: 1.4;">${word.example_kr}</div>
+                    <p style="font-family:'Noto Sans JP'; margin-bottom:5px;">${word.example_jp} <span onclick="speak('${word.kanji}')">🔊</span></p>
+                    <p style="font-size:12px; color:var(--text-sub);">${word.example_kr}</p>
                 </div>
             </div>
-            <div style="padding: 15px 20px; display:flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02);">
-                <button onclick="speak('${word.kanji}')" style="background:none; color: var(--text-sub); font-weight: 700;">🔊 듣기</button>
-                <button onclick="alert('💡 팁: ${word.tips[0]?.meaning || "내용 없음"}')" style="background:none; color: var(--accent2); font-weight: 700;">💡 팁</button>
+            <div style="padding:15px; border-top:1px solid var(--border); text-align:right;">
+                <button onclick="alert('💡 팁: ${word.tips[0]?.meaning || "없음"}')" style="color:var(--primary); font-weight:700; background:none;">팁 💡</button>
             </div>
         `;
-        container.appendChild(card);
-        bindSwipeEvents(card);
+        zone.appendChild(card);
+        bindSwipe(card);
     }
 
-    function bindSwipeEvents(card) {
+    function bindSwipe(card) {
         let startX = 0, moveX = 0;
-        const handleStart = (e) => {
-            startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-            card.style.transition = 'none';
-        };
-        const handleMove = (e) => {
-            if (!startX) return;
-            moveX = (e.type.includes('touch') ? e.touches[0].clientX : e.clientX) - startX;
-            let rot = moveX / 15;
+        const start = (e) => { startX = e.type.includes('touch')?e.touches[0].clientX:e.clientX; card.style.transition = 'none'; };
+        const move = (e) => {
+            if(!startX) return;
+            moveX = (e.type.includes('touch')?e.touches[0].clientX:e.clientX) - startX;
+            let rot = moveX / 20; /* [REQ: 프롬프트 4.3] 물리 회전 계산 */
             card.style.transform = `translateX(${moveX}px) rotate(${rot}deg)`;
-            if(moveX < -60) card.classList.add('sw-left');
-            else if(moveX > 60) card.classList.add('sw-right');
+            if(moveX < -50) card.classList.add('sw-left');
+            else if(moveX > 50) card.classList.add('sw-right');
             else card.classList.remove('sw-left', 'sw-right');
         };
-        const handleEnd = () => {
-            if (Math.abs(moveX) > 130) {
-                handleAction(moveX < 0 ? 'left' : 'right');
-            } else {
-                card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                card.style.transform = '';
-                card.classList.remove('sw-left', 'sw-right');
-            }
+        const end = () => {
+            if(Math.abs(moveX) > 120) handleSwipe(moveX < 0 ? 'left' : 'right');
+            else { card.style.transition = '0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; card.style.transform = ''; card.classList.remove('sw-left', 'sw-right'); }
             startX = 0; moveX = 0;
         };
-        card.addEventListener('touchstart', handleStart); card.addEventListener('mousedown', handleStart);
-        window.addEventListener('touchmove', handleMove); window.addEventListener('mousemove', handleMove);
-        window.addEventListener('touchend', handleEnd); window.addEventListener('mouseup', handleEnd);
+        card.addEventListener('touchstart', start); card.addEventListener('mousedown', start);
+        window.addEventListener('touchmove', move); window.addEventListener('mousemove', move);
+        window.addEventListener('touchend', end); window.addEventListener('mouseup', end);
     }
 
-    function handleAction(dir) {
-        if(state.phase === 'tutorial') {
-            state.tutorialIdx++;
-            if(state.tutorialIdx >= 6) {
-                state.phase = 'goal';
-                navigate('goal');
-            } else renderTutorialCard();
+    function handleSwipe(dir) {
+        if(state.isTutorial) {
+            state.tutIdx++;
+            if(state.tutIdx >= 6) { state.isTutorial = false; showScreen('goal'); }
+            else updateSkimUI();
         } else {
-            const word = state.skimmingQueue[state.currentSkimIdx];
-            if(dir === 'left') {
-                if(!state.library.find(w => w.id === word.id)) state.library.push(word);
-            }
-            // 히스토리 업데이트
+            const word = state.skimmingQueue[state.skimIdx];
+            if(dir === 'left') { if(!state.library.find(w=>w.id===word.id)) state.library.push(word); }
             const today = new Date().toDateString();
-            state.studyHistory[today] = (state.studyHistory[today] || 0) + 1;
-            
-            state.currentSkimIdx++;
-            if(state.currentSkimIdx >= state.dailyGoal) {
-                alert("오늘의 스킹 목표를 달성했습니다! 🥳");
-                navigate('home');
-            } else renderSkimCard();
+            state.history[today] = (state.history[today] || 0) + 1;
+            state.skimIdx++;
+            if(state.skimIdx >= state.dailyGoal) { alert("오늘의 목표 달성!"); navigate('home'); }
+            else updateSkimUI();
         }
         save();
     }
 
-    // --- GOAL LOGIC ---
-    function setGoal(key, val, el) {
-        state[key] = val;
-        if(el) {
-            el.parentElement.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
-            el.classList.add('selected');
-        }
+    // --- [REQ: 흐름도 2] 목표 설정 완료 ---
+    function selectGoal(key, val, el) {
+        state[key + (key==='target'?'Lvl':'Lvl')] = val; // currentLvl, targetLvl
+        if(key === 'current') state.currentLvl = val; else state.targetLvl = val;
+        el.parentElement.querySelectorAll('.goal-opt').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
     }
-
-    function finishGoalSetting() {
-        if(!state.examDate || !state.dailyGoal) {
-            alert("모든 목표 정보를 입력해주세요!");
-            return;
-        }
+    function completeGoalSetting() {
+        state.examDate = document.getElementById('goal-date').value;
+        state.dailyGoal = parseInt(document.getElementById('goal-count').value) || 20;
         state.phase = 'main';
-        startApp();
-    }
-
-    function startApp() {
-        navigate('home');
         document.getElementById('bottom-nav').classList.remove('hidden');
-        document.getElementById('home-title').innerText = `JLPT ${state.targetLevel} 마스터`;
-        
-        // D-Day 계산
-        const d = Math.ceil((new Date(state.examDate) - new Date()) / 86400000);
-        document.getElementById('home-dday').innerText = d >= 0 ? `D-${d}` : `D+${Math.abs(d)}`;
-
-        renderCalendar();
-        // 목표 레벨 단어 큐 생성
-        state.skimmingQueue = state.db.filter(w => w.level === state.targetLevel).slice(0, state.dailyGoal);
-        state.currentSkimIdx = 0;
+        navigate('home');
         save();
     }
 
-    // --- CALENDAR LOGIC (Vertical) ---
+    // --- [REQ: 흐름도 4] 커스텀 세로 스크롤 캘린더 ---
     function renderCalendar() {
         const container = document.getElementById('main-calendar');
         container.innerHTML = '';
         const today = new Date();
-        
-        // 현재월 기준 전후 6개월치 생성
-        for(let i=-1; i<6; i++) {
+        for(let i=-1; i<4; i++) { // 이전 1달 ~ 이후 4달
             const m = new Date(today.getFullYear(), today.getMonth() + i, 1);
-            const monthDiv = document.createElement('div');
-            monthDiv.className = 'cal-month';
-            monthDiv.innerHTML = `<h3>${m.getFullYear()}년 ${m.getMonth()+1}월</h3><div class="cal-grid"></div>`;
-            
-            const grid = monthDiv.querySelector('.cal-grid');
-            const firstDay = new Date(m.getFullYear(), m.getMonth(), 1).getDay();
-            const daysInMonth = new Date(m.getFullYear(), m.getMonth()+1, 0).getDate();
-            
-            for(let empty=0; empty<firstDay; empty++) grid.appendChild(document.createElement('div'));
-            
-            for(let d=1; d<=daysInMonth; d++) {
-                const dateObj = new Date(m.getFullYear(), m.getMonth(), d);
-                const dateStr = dateObj.toDateString();
+            const div = document.createElement('div');
+            div.className = 'cal-month';
+            div.innerHTML = `<h3>${m.getFullYear()}년 ${m.getMonth()+1}월</h3><div class="cal-grid"></div>`;
+            const grid = div.querySelector('.cal-grid');
+            const days = new Date(m.getFullYear(), m.getMonth()+1, 0).getDate();
+            const startDay = new Date(m.getFullYear(), m.getMonth(), 1).getDay();
+            for(let e=0; e<startDay; e++) grid.appendChild(document.createElement('div'));
+            for(let d=1; d<=days; d++) {
+                const dateStr = new Date(m.getFullYear(), m.getMonth(), d).toDateString();
                 const dayDiv = document.createElement('div');
-                dayDiv.className = 'cal-day';
-                if(dateStr === today.toDateString()) dayDiv.classList.add('today');
-                if(state.studyHistory[dateStr] >= state.dailyGoal) dayDiv.classList.add('done');
+                dayDiv.className = `cal-day ${dateStr === today.toDateString()?'today':''} ${state.history[dateStr]>=state.dailyGoal?'done':''}`;
                 dayDiv.innerText = d;
                 grid.appendChild(dayDiv);
             }
-            container.appendChild(monthDiv);
+            container.appendChild(div);
         }
     }
 
-    // --- LIBRARY ---
+    // --- [REQ: 흐름도 7] 라이브러리 카드 렌더링 ---
     function renderLibrary(lv) {
         const list = document.getElementById('lib-list');
         list.innerHTML = '';
         const filtered = state.library.filter(w => w.level === lv);
-        
-        if(filtered.length === 0) {
-            list.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:20px;">저장된 단어가 없습니다.</p>`;
-            return;
-        }
-
+        if(!filtered.length) { list.innerHTML = '<p style="text-align:center; color:var(--text-muted);">저장된 단어가 없습니다.</p>'; return; }
         filtered.forEach(w => {
-            const card = document.createElement('div');
-            card.className = 'cal-month';
-            card.style.cssText = 'margin-bottom:12px; padding:20px; text-align:left; scroll-snap-align: none;';
-            card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="color:var(--accent); font-size:12px; font-weight:700;">${w.furigana}</span>
-                    <span style="color:var(--primary); font-size:11px; font-weight:900;">${w.level}</span>
-                </div>
-                <div style="font-size:22px; font-weight:900; margin-bottom:5px;">${w.kanji}</div>
-                <div style="font-size:16px; font-weight:700; color:var(--text-main); margin-bottom:12px;">${w.meaning}</div>
-                <div style="font-size:13px; color:var(--text-sub); border-top: 1px solid var(--border); padding-top:10px;">${w.example_jp}</div>
-            `;
-            list.appendChild(card);
+            const item = document.createElement('div');
+            item.className = 'cal-month';
+            item.style.cssText = 'padding:15px; margin-bottom:0; text-align:left; scroll-snap-align: none;';
+            item.innerHTML = `<b>${w.kanji}</b> [${w.furigana}]<br><span style="font-size:14px; color:var(--primary);">${w.meaning}</span>`;
+            list.appendChild(item);
         });
     }
 
-    // --- HELPERS ---
-    function renderTutorialCard() {
-        document.getElementById('tut-progress').innerText = `테스트 학습 (${state.tutorialIdx+1}/6)`;
-        renderCard('tut-zone', state.db[state.tutorialIdx] || state.db[0]);
-    }
-
-    function renderSkimCard() {
-        document.getElementById('skim-progress-txt').innerText = `${state.currentSkimIdx+1} / ${state.dailyGoal}`;
-        document.getElementById('skim-level-tag').innerText = state.targetLevel;
-        renderCard('skim-zone', state.skimmingQueue[state.currentSkimIdx] || state.db[0]);
-    }
-
+    // --- 유틸리티 함수 ---
     function navigate(id, el) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.replace('active', 'hidden'));
-        document.getElementById('screen-'+id).classList.replace('hidden', 'active');
-        if(id === 'skimming') renderSkimCard();
-        if(id === 'home') renderCalendar();
-        if(id === 'library') renderLibrary(state.targetLevel);
-        if(el) {
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            el.classList.add('active');
+        showScreen(id);
+        if(id === 'home') {
+            renderCalendar();
+            if(state.examDate) {
+                const d = Math.ceil((new Date(state.examDate)-new Date())/86400000);
+                document.getElementById('home-dday').innerText = d>=0?`D-${d}`:`D+${Math.abs(d)}`;
+            }
         }
-    }
-
-    function toggleBookmark(id, el) {
-        if(state.bookmarks.has(id)) {
-            state.bookmarks.delete(id);
-            el.classList.remove('active');
-        } else {
-            state.bookmarks.add(id);
-            el.classList.add('active');
+        if(id === 'skimming') {
+            state.skimmingQueue = state.db.filter(w=>w.level===state.targetLvl).slice(0, state.dailyGoal);
+            state.skimIdx = 0;
+            updateSkimUI();
         }
-        save();
+        if(id === 'library') renderLibrary(state.targetLvl);
+        if(el) { document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active')); el.classList.add('active'); }
     }
 
-    function speak(text) {
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'ja-JP';
-        speechSynthesis.speak(u);
+    function updateSkimUI() {
+        const word = state.isTutorial ? state.db[state.tutIdx] : state.skimmingQueue[state.skimIdx];
+        document.getElementById('skim-counter').innerText = state.isTutorial ? `${state.tutIdx+1} / 6` : `${state.skimIdx+1} / ${state.dailyGoal}`;
+        document.getElementById('skim-lvl-badge').innerText = word.level;
+        renderCard(word);
     }
 
-    function save() { 
-        const toSave = {...state, bookmarks: Array.from(state.bookmarks)};
-        localStorage.setItem('jlpt_master_state', JSON.stringify(toSave)); 
-    }
+    function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.replace('active','hidden')); document.getElementById('screen-'+id).classList.replace('hidden','active'); }
+    function speak(t) { const u=new SpeechSynthesisUtterance(t); u.lang='ja-JP'; speechSynthesis.speak(u); }
+    function toggleBm(id, el) { if(state.bookmarks.has(id)){ state.bookmarks.delete(id); el.innerText='🏷️'; } else { state.bookmarks.add(id); el.innerText='🔖'; } save(); }
+    function save() { const toSave = {...state, bookmarks: Array.from(state.bookmarks)}; localStorage.setItem('master_pro_v1', JSON.stringify(toSave)); }
 
     init();
 </script>
