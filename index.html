@@ -7,433 +7,1185 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Noto+Sans+KR:wght@500;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* [증명: 프롬프트 2] 글로벌 디자인 시스템 */
             --primary: #FF6B6B; --accent: #4ECDC4; --bg: #F5F5F7;
             --card-bg: #FFFFFF; --text-main: #1D1D1F; --text-sub: #86868B;
             --border: rgba(0,0,0,0.08); --shadow: 0 15px 35px rgba(0,0,0,0.1);
-            --radius: 25px; /* [명세서 2] 카드 굴곡 */
-            --nav-h: 84px;
+            --radius: 25px; --nav-h: 84px;
+            --ok: #2e7d32; --bad: #c62828; --mid: #757575;
         }
-
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-        body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text-main);overflow:hidden; height: 100vh;}
+        body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text-main);overflow:hidden;height:100vh;}
         button{cursor:pointer;border:none;outline:none;font-family:inherit;}
-        /* [증명: 수정본 6-3] 예문 후리가나 스타일 */
         ruby rt { font-size: 0.55em; color: var(--primary); font-family: 'Noto Sans JP'; line-height: 1; }
         .hidden{display:none !important;}
 
         #app{width:100%;max-width:430px;height:100vh;margin:0 auto;position:relative;overflow:hidden;}
 
-        /* --- SCREENS --- */
-        .screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity .3s; z-index: 10; background: var(--bg);}
+        .screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity .25s; z-index: 10; background: var(--bg);}
         .screen.active{opacity:1; pointer-events: all;}
         .screen.hidden{opacity:0; pointer-events: none;}
 
-        /* [증명: 흐름도 4] 수직 스와이프 캘린더 */
-        .cal-container { flex: 1; overflow-y: auto; padding: 20px; scroll-snap-type: y mandatory; }
-        .cal-month { scroll-snap-align: start; margin-bottom: 25px; background: var(--card-bg); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
-        .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 50%; }
+        /* [흐름도 4] 수직 스크롤 캘린더 — 다른 달 탐색 */
+        .cal-container { flex: 1; overflow-y: auto; padding: 12px 16px 100px; scroll-snap-type: y proximity; -webkit-overflow-scrolling: touch; }
+        .cal-month { scroll-snap-align: start; margin-bottom: 20px; background: var(--card-bg); border-radius: var(--radius); padding: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+        .cal-day-head { font-size: 11px; color: var(--text-sub); font-weight: 700; }
+        .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 50%; position: relative; }
+        .cal-day .ring { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(var(--accent) var(--p,0%), #eee var(--p,0%)); mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px)); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px)); }
         .cal-day.today { border: 2.5px solid var(--primary); color: var(--primary); font-weight: 900; }
-        .cal-day.done { background: var(--accent); color: white; }
+        .cal-day .num { position: relative; z-index: 1; }
 
-        /* [증명: 프롬프트 3.3] 스와이프 & 블러 효과 */
-        .swipe-zone { flex: 1; position: relative; perspective: 1000px; display: flex; align-items: center; justify-content: center; }
-        .word-card { 
-            position: absolute; width: 92%; height: 82%; background: var(--card-bg); border-radius: var(--radius);
+        .swipe-zone { flex: 1; position: relative; perspective: 1000px; display: flex; align-items: center; justify-content: center; min-height: 0; }
+        .word-card {
+            position: absolute; width: 92%; max-height: 78%; background: var(--card-bg); border-radius: var(--radius);
             border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden;
             display: flex; flex-direction: column; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 10;
         }
-        .swipe-overlay { 
-            position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            opacity: 0; pointer-events: none; backdrop-filter: blur(15px); transition: 0.2s; 
+        .swipe-overlay {
+            position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; backdrop-filter: blur(12px); transition: 0.2s;
         }
-        .word-card.sw-left .swipe-overlay.left { opacity: 1; background: rgba(78, 205, 196, 0.25); color: #00796b; }
-        .word-card.sw-right .swipe-overlay.right { opacity: 1; background: rgba(255, 107, 107, 0.25); color: #c62828; }
+        .word-card.sw-left .swipe-overlay.left { opacity: 1; background: rgba(78, 205, 196, 0.22); color: #00695c; }
+        .word-card.sw-right .swipe-overlay.right { opacity: 1; background: rgba(255, 107, 107, 0.18); color: #b71c1c; }
 
-        /* [증명: 명세서 7, 8] 카드 레이아웃 */
-        .c-img { width: 100%; height: 180px; background: #eef; display: flex; align-items: center; justify-content: center; font-size: 80px; position: relative; }
-        .c-bookmark { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; }
-        .c-body { padding: 20px; flex: 1; display: flex; flex-direction: column; text-align: center; }
-        .c-kanji { font-size: 44px; font-weight: 900; font-family: 'Noto Sans JP'; margin-bottom: 5px; }
-        .c-meaning { font-size: 22px; font-weight: 700; color: var(--text-main); }
-        .c-ex { background: #f9f9f9; padding: 15px; border-radius: 18px; text-align: left; margin-top: auto; border-left: 5px solid var(--accent); }
-        .c-lvl { position: absolute; bottom: 15px; left: 15px; background: var(--primary); color: white; padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: 900; }
-        
-        /* [증명: 흐름도 2] 목표 설정 버튼 */
-        .goal-opt { padding: 12px; border-radius: 12px; border: 1.5px solid var(--border); background: white; font-weight: 700; color: var(--text-sub); text-align: center; }
-        .goal-opt.active { border-color: var(--primary); color: var(--primary); background: rgba(255,107,107,0.05); }
+        .c-img { width: 100%; height: 160px; background: linear-gradient(145deg, #eef6ff, #fff5f5); display: flex; align-items: center; justify-content: center; font-size: 72px; position: relative; flex-shrink: 0; }
+        .c-bookmark { position: absolute; top: 12px; right: 12px; font-size: 22px; cursor: pointer; z-index: 2; }
+        .c-bookmark.active { filter: drop-shadow(0 0 2px var(--primary)); }
+        .c-body { padding: 16px; flex: 1; display: flex; flex-direction: column; text-align: center; overflow-y: auto; min-height: 0; }
+        .c-furi { font-size: 15px; color: var(--accent); font-family: 'Noto Sans JP'; font-weight: 700; }
+        .c-kanji { font-size: 40px; font-weight: 900; font-family: 'Noto Sans JP'; margin: 4px 0; line-height: 1.15; }
+        .c-meaning { font-size: 19px; font-weight: 700; }
+        .c-pos { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
+        .c-ex { background: #f9f9f9; padding: 12px; border-radius: 16px; text-align: left; margin-top: 10px; border-left: 4px solid var(--accent); font-size: 14px; }
+        .c-lvl { position: absolute; bottom: 10px; left: 10px; background: var(--primary); color: white; padding: 4px 10px; border-radius: 10px; font-size: 10px; font-weight: 900; }
 
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; height: var(--nav-h); background: white; display: flex; border-top: 1px solid var(--border); z-index: 1000; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--text-muted); cursor: pointer; }
-        .nav-item.active { color: var(--primary); }
-        .nav-icon { font-size: 22px; margin-bottom: 4px; }
-        
-        .btn-primary { background: var(--primary); color: white; padding: 18px; border-radius: 20px; font-weight: 900; width: 100%; box-shadow: 0 10px 25px rgba(255,107,107,0.3); }
-        .skim-btns { display: flex; gap: 12px; padding: 0 20px 25px; }
-        .btn-skim { flex: 1; padding: 18px; border-radius: 20px; font-weight: 800; font-size: 15px; }
-        .btn-skim.know { background: rgba(78, 205, 196, 0.1); color: var(--accent); border: 1.5px solid var(--accent); }
+        .goal-opt { padding: 12px; border-radius: 12px; border: 1.5px solid var(--border); background: white; font-weight: 700; color: var(--text-sub); text-align: center; font-size: 13px; }
+        .goal-opt.active { border-color: var(--primary); color: var(--primary); background: rgba(255,107,107,0.06); }
+
+        /* [흐름도 3-3] 우하단 작은 액션 */
+        .home-fab {
+            position: fixed; right: 12px; bottom: 22px; z-index: 900;
+            display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+        }
+        .home-fab button {
+            width: 52px; height: 52px; border-radius: 50%; background: white; box-shadow: var(--shadow);
+            border: 1px solid var(--border); font-size: 20px; display: flex; align-items: center; justify-content: center;
+        }
+        .home-fab button span.lbl { display: none; }
+        .quick-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 16px 12px; }
+        .quick-tile {
+            background: white; border-radius: 20px; padding: 18px 8px; text-align: center; box-shadow: var(--shadow);
+            border: 1px solid var(--border); font-weight: 800; font-size: 13px; color: var(--text-main);
+        }
+        .quick-tile .qi { font-size: 26px; margin-bottom: 8px; }
+
+        .btn-primary { background: var(--primary); color: white; padding: 16px; border-radius: 20px; font-weight: 900; width: 100%; box-shadow: 0 10px 25px rgba(255,107,107,0.28); font-size: 15px; }
+        .skim-btns { display: flex; gap: 10px; padding: 0 16px 18px; flex-shrink: 0; }
+        .btn-skim { flex: 1; padding: 16px; border-radius: 18px; font-weight: 800; font-size: 14px; }
+        .btn-skim.know { background: rgba(78, 205, 196, 0.12); color: #00897b; border: 1.5px solid var(--accent); }
         .btn-skim.learn { background: rgba(255, 107, 107, 0.1); color: var(--primary); border: 1.5px solid var(--primary); }
+
+        .subbar { display: flex; align-items: center; padding: 12px 16px; gap: 12px; flex-shrink: 0; }
+        .subbar .back { font-size: 22px; background: none; padding: 4px; }
+
+        /* [수정본] 플래시카드 — 앞면 흰 화면, 한자+TTS */
+        #fc-front-screen { background: #fff; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+        #fc-front-screen .fc-kanji { font-size: 48px; font-family: 'Noto Sans JP'; font-weight: 900; text-align: center; }
+        #fc-front-screen .fc-tts { margin-top: 16px; font-size: 28px; cursor: pointer; }
+        .fc-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 12px 12px 8px; }
+        .fc-actions button { padding: 10px 14px; border-radius: 14px; font-weight: 800; font-size: 12px; }
+        .fc-btn-unk { background: rgba(198,40,40,0.12); color: var(--bad); border: 1px solid rgba(198,40,40,0.35); }
+        .fc-btn-mid { background: rgba(117,117,117,0.12); color: var(--mid); border: 1px solid rgba(117,117,117,0.35); }
+        .fc-btn-easy { background: rgba(46,125,50,0.12); color: var(--ok); border: 1px solid rgba(46,125,50,0.35); }
+        .fc-btn-unk.sel, .fc-btn-mid.sel, .fc-btn-easy.sel { box-shadow: 0 0 0 2px var(--primary); }
+        .fc-nav-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px 20px; gap: 12px; }
+        .fc-nav-row button { padding: 14px 20px; border-radius: 16px; font-weight: 800; }
+        .fc-back-btn { background: #eee; color: #333; flex: 1; }
+        .fc-next-btn { background: var(--primary); color: white; flex: 1; }
+
+        .lib-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .lib-tab { padding: 10px 16px; border-radius: 14px; background: white; border: 1px solid var(--border); font-weight: 800; font-size: 13px; }
+        .lib-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .vault-sub { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .vault-sub button { padding: 8px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; background: #fff; border: 1px solid var(--border); }
+        .vault-sub button.active { border-color: var(--accent); color: var(--accent); }
+        .mask-toggles { display: flex; gap: 8px; margin-bottom: 12px; }
+        .mask-toggles button { padding: 8px 14px; border-radius: 12px; font-size: 12px; font-weight: 700; background: #eee; }
+        .mask-toggles button.on { background: var(--accent); color: white; }
+
+        .learn-card-mini { background: white; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
+        .learn-card-mini .inner { padding: 0; }
+
+        /* 모달 [프롬프트] */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000;
+            display: none; align-items: flex-end; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-sheet {
+            background: white; width: 100%; max-width: 430px; border-radius: var(--radius) var(--radius) 0 0;
+            padding: 22px; max-height: 88vh; overflow-y: auto;
+            animation: mu 0.35s ease;
+        }
+        @keyframes mu { from { transform: translateY(100%); opacity: 0.8; } to { transform: translateY(0); opacity: 1; } }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+        .stat-box { background: #f5f5f7; padding: 14px; border-radius: 16px; text-align: center; }
+        .stat-box .v { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 700; color: var(--primary); }
+        .fc-result-section { margin-bottom: 18px; }
+        .fc-result-section h4 { margin-bottom: 8px; font-size: 14px; }
+        .pill { display: inline-block; padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: 800; margin-bottom: 8px; }
     </style>
 </head>
 <body>
 <div id="app">
-    <div id="screen-onboarding" class="screen active" style="align-items: center; justify-content: center; padding: 40px;">
-        <h2 style="text-align: center; margin-bottom: 30px;">마음에 드는<br>카드 스타일을 고르세요</h2>
-        <div style="display: flex; gap: 15px; width: 100%; margin-bottom: 40px;">
-            <div class="goal-opt" style="flex:1; padding: 40px 10px;" onclick="setTheme('anime', this)">🎌 애니메이션</div>
-            <div class="goal-opt" style="flex:1; padding: 40px 10px;" onclick="setTheme('realism', this)">📷 리얼리즘</div>
+    <!-- [명세서] 튜토리얼 1: 스타일 -->
+    <div id="screen-onboarding" class="screen active" style="align-items: center; justify-content: center; padding: 36px;">
+        <h2 style="text-align: center; margin-bottom: 28px;">마음에 드는<br>카드 스타일을 고르세요</h2>
+        <div style="display: flex; gap: 12px; width: 100%; margin-bottom: 36px;">
+            <div class="goal-opt" style="flex:1; padding: 36px 8px;" onclick="setTheme('anime', this)">🎌 애니메이션</div>
+            <div class="goal-opt" style="flex:1; padding: 36px 8px;" onclick="setTheme('realism', this)">📷 리얼리즘</div>
         </div>
         <button id="btn-theme-confirm" class="btn-primary" disabled onclick="showIntro()">이 스타일로 하기</button>
     </div>
 
-    <div id="screen-intro" class="screen hidden" style="align-items: center; justify-content: center; padding: 30px;">
-        <div style="width: 80%; background: white; border-radius: 25px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 30px; text-align: center;">
-            <div style="font-size: 60px;">🌸</div>
-            <h2 style="margin-top: 15px; font-family: 'Noto Sans JP';">作法</h2>
-            <p style="color: var(--text-sub);">예의범절, 예절</p>
+    <div id="screen-intro" class="screen hidden" style="align-items: center; justify-content: center; padding: 28px;">
+        <div style="width: 82%; background: white; border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 26px; text-align: center;">
+            <div style="font-size: 56px;">🌸</div>
+            <h2 style="margin-top: 12px; font-family: 'Noto Sans JP';">作法</h2>
+            <p style="color: var(--text-sub); font-size: 14px;">예의범절, 예절</p>
         </div>
+        <p style="font-size: 13px; color: var(--accent); font-weight: 800; margin-bottom: 8px;">카드 준비 완료</p>
         <h2 style="text-align: center;">지금 바로,<br>첫 번째 단어들을 펼쳐봅시다 🚀</h2>
-        <button class="btn-primary" style="margin-top: 40px;" onclick="startSkimming(true)">스키밍 시작하기</button>
+        <button class="btn-primary" style="margin-top: 36px;" onclick="startSkimming(true)">스키밍 시작하기</button>
     </div>
 
+    <!-- [흐름도 5] 스키밍: 목표 레벨 단어 + 일일 목표 수 -->
     <div id="screen-skimming" class="screen hidden">
-        <div style="padding: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <div id="skim-lvl-badge" style="font-weight: 900; color: var(--primary);">N3</div>
-            <div id="skim-counter" style="font-family: 'DM Mono'; font-weight: 700; color: var(--text-sub);">1 / 6</div>
-            <div style="width: 20px;"></div>
+        <div class="subbar">
+            <button type="button" class="back" onclick="goHomeFromSkim()" aria-label="홈">←</button>
+            <div style="flex:1; text-align:center;">
+                <div id="skim-lvl-badge" style="font-weight: 900; color: var(--primary); font-size: 15px;">N3</div>
+                <div id="skim-counter" style="font-family: 'DM Mono'; font-size: 13px; color: var(--text-sub);">1 / 6</div>
+            </div>
+            <div style="width: 36px;"></div>
         </div>
         <div class="swipe-zone" id="skim-zone"></div>
         <div class="skim-btns">
-            <button class="btn-skim know" onclick="handleAction('left')">알고 있어요</button>
-            <button class="btn-skim learn" onclick="handleAction('right')">학습할게요</button>
+            <button type="button" class="btn-skim know" onclick="handleAction('left')">알고 있어요</button>
+            <button type="button" class="btn-skim learn" onclick="handleAction('right')">학습할게요</button>
         </div>
     </div>
 
-    <div id="screen-report" class="screen hidden" style="align-items: center; justify-content: center; padding: 30px; text-align: center;">
-        <div style="font-size: 60px;">🏆</div>
-        <h2 style="margin: 20px 0 10px;">학습 완료!</h2>
-        <p id="report-time" style="font-size: 24px; font-weight: 900; color: var(--accent); margin-bottom: 30px;">0분 0초</p>
-        <p style="color: var(--text-sub); line-height: 1.6; margin-bottom: 40px;">
-            수천개의 단어, 빠르고 정확하게 외울 수 있습니다.<br>
+    <!-- 튜토리얼 후 리포트 → 목표 설정 [흐름도 1] -->
+    <div id="screen-report" class="screen hidden" style="align-items: center; justify-content: center; padding: 28px; text-align: center;">
+        <div style="font-size: 56px;">🏆</div>
+        <h2 style="margin: 18px 0 10px;">튜토리얼 완료!</h2>
+        <p id="report-time" style="font-size: 22px; font-weight: 900; color: var(--accent); margin-bottom: 26px;">0분 0초</p>
+        <p style="color: var(--text-sub); line-height: 1.65; margin-bottom: 32px; font-size: 14px;">
+            수천 개의 단어를 빠르고 정확하게 외울 수 있습니다.<br>
             <strong>지금 목표를 설정하세요.</strong><br>
-            최적의 암기 플랜을 생성해드립니다.
+            가장 효과적인 암기 플랜을 생성해 드립니다.
         </p>
-        <button class="btn-primary" onclick="showGoalSetting()">목표 설정하기 🎯</button>
+        <button type="button" class="btn-primary" onclick="showGoalSetting(false)">목표 설정하기 🎯</button>
     </div>
 
-    <div id="screen-goal" class="screen hidden" style="padding: 30px 20px; overflow-y: auto;">
-        <h2 style="margin-bottom: 25px; font-weight: 900;">목표 설정하기 🎯</h2>
-        
-        <p style="font-size: 14px; color: var(--text-sub); margin-bottom: 8px;">2-1. 현재 JLPT 점수</p>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
-            <button class="goal-opt" onclick="setGoal('current', 'none', this)">없음</button>
-            <button class="goal-opt" onclick="setGoal('current', 'N5', this)">N5</button>
-            <button class="goal-opt" onclick="setGoal('current', 'N4', this)">N4</button>
-            <button class="goal-opt" onclick="setGoal('current', 'N3', this)">N3</button>
-            <button class="goal-opt" onclick="setGoal('current', 'N2', this)">N2</button>
-            <button class="goal-opt" onclick="setGoal('current', 'N1', this)">N1</button>
+    <!-- [흐름도 2] 목표: 현재/목표/시험일/하루 단어 수 -->
+    <div id="screen-goal" class="screen hidden" style="padding: 24px 18px 100px; overflow-y: auto;">
+        <h2 id="goal-title" style="margin-bottom: 20px; font-weight: 900;">목표 설정하기 🎯</h2>
+
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 8px;">현재 JLPT 점수가 있으세요?</p>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px;">
+            <button type="button" class="goal-opt" data-g="current" data-v="none" onclick="setGoal('current','none',this)">없습니다</button>
+            <button type="button" class="goal-opt" data-g="current" data-v="N5" onclick="setGoal('current','N5',this)">N5</button>
+            <button type="button" class="goal-opt" data-g="current" data-v="N4" onclick="setGoal('current','N4',this)">N4</button>
+            <button type="button" class="goal-opt" data-g="current" data-v="N3" onclick="setGoal('current','N3',this)">N3</button>
+            <button type="button" class="goal-opt" data-g="current" data-v="N2" onclick="setGoal('current','N2',this)">N2</button>
+            <button type="button" class="goal-opt" data-g="current" data-v="N1" onclick="setGoal('current','N1',this)">N1</button>
         </div>
 
-        <p style="font-size: 14px; color: var(--text-sub); margin-bottom: 8px;">2-2. 목표 점수 (스키밍 레벨)</p>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
-            <button class="goal-opt" onclick="setGoal('target', 'N5', this)">N5</button>
-            <button class="goal-opt" onclick="setGoal('target', 'N4', this)">N4</button>
-            <button class="goal-opt" onclick="setGoal('target', 'N3', this)">N3</button>
-            <button class="goal-opt" onclick="setGoal('target', 'N2', this)">N2</button>
-            <button class="goal-opt" onclick="setGoal('target', 'N1', this)">N1</button>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 8px;">목표 점수 (스키밍·단어 레벨)</p>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px;">
+            <button type="button" class="goal-opt" data-g="target" data-v="N5" onclick="setGoal('target','N5',this)">N5</button>
+            <button type="button" class="goal-opt" data-g="target" data-v="N4" onclick="setGoal('target','N4',this)">N4</button>
+            <button type="button" class="goal-opt" data-g="target" data-v="N3" onclick="setGoal('target','N3',this)">N3</button>
+            <button type="button" class="goal-opt" data-g="target" data-v="N2" onclick="setGoal('target','N2',this)">N2</button>
+            <button type="button" class="goal-opt" data-g="target" data-v="N1" onclick="setGoal('target','N1',this)">N1</button>
         </div>
 
-        <p style="font-size: 14px; color: var(--text-sub); margin-bottom: 8px;">2-3. 시험 일자</p>
-        <input type="date" id="goal-date" onchange="checkGoalReady()" style="width: 100%; padding: 15px; border-radius: 12px; border: 1.5px solid var(--border); margin-bottom: 20px;">
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 8px;">시험 일자 (D-day 연동)</p>
+        <input type="date" id="goal-date" onchange="checkGoalReady()" style="width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid var(--border); margin-bottom: 16px;">
 
-        <p style="font-size: 14px; color: var(--text-sub); margin-bottom: 8px;">2-4. 하루 단어 학습량</p>
-        <input type="number" id="goal-count" placeholder="예: 20" oninput="checkGoalReady()" style="width: 100%; padding: 15px; border-radius: 12px; border: 1.5px solid var(--border); margin-bottom: 30px;">
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 8px;">하루에 외울 단어 수</p>
+        <input type="number" id="goal-count" min="1" placeholder="예: 20" oninput="checkGoalReady()" style="width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid var(--border); margin-bottom: 22px;">
 
-        <button id="btn-goal-complete" class="btn-primary" disabled onclick="completeGoal()">설정 완료 및 시작</button>
+        <p id="goal-hint" style="font-size: 13px; color: var(--accent); font-weight: 700; margin-bottom: 12px; display: none;"></p>
+        <button type="button" id="btn-goal-complete" class="btn-primary" disabled onclick="completeGoal()">설정 완료 및 시작</button>
     </div>
 
-    <div id="screen-home" class="screen hidden" style="padding-bottom: 90px;">
-        <div style="padding: 25px 20px 10px; display: flex; justify-content: space-between; align-items: center;">
-            <h2 id="home-title" style="font-size: 22px; font-weight: 900;">N3 정복 프로젝트</h2>
-            <div id="home-dday" style="background: var(--primary); color: white; padding: 6px 16px; border-radius: 20px; font-family: 'DM Mono'; font-weight: 700;">D-??</div>
+    <!-- [흐름도 3] 홈: D-day, 캘린더, 중앙 퀵액션, 우하단 작은 메뉴 -->
+    <div id="screen-home" class="screen hidden" style="padding-bottom: 0;">
+        <div style="padding: 20px 18px 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+            <div>
+                <h2 id="home-title" style="font-size: 20px; font-weight: 900;">JLPT 정복</h2>
+                <p id="home-streak" style="font-size: 13px; color: var(--text-sub); margin-top: 4px;">🔥 연속 <span id="streak-n">0</span>일</p>
+            </div>
+            <div style="text-align: right;">
+                <div id="home-dday" style="background: var(--primary); color: white; padding: 6px 14px; border-radius: 20px; font-family: 'DM Mono'; font-weight: 700; font-size: 13px;">D-??</div>
+            </div>
+        </div>
+        <div class="quick-row">
+            <button type="button" class="quick-tile" onclick="openSkimmingFromHome()"><div class="qi">⚡</div>스키밍</button>
+            <button type="button" class="quick-tile" onclick="openFlashcardFromHome()"><div class="qi">🃏</div>플래시카드</button>
+            <button type="button" class="quick-tile" onclick="showScreen('quiz')"><div class="qi">❓</div>퀴즈</button>
         </div>
         <div class="cal-container" id="main-calendar"></div>
+        <div class="home-fab">
+            <button type="button" onclick="navigateLibrary()" title="라이브러리">📚</button>
+            <button type="button" onclick="showScreen('analysis')" title="분석">📊</button>
+            <button type="button" onclick="showGoalSetting(true)" title="설정">⚙️</button>
+        </div>
     </div>
 
-    <div id="screen-library" class="screen hidden" style="padding: 25px 20px; overflow-y: auto; padding-bottom: 100px;">
-        <h2 style="margin-bottom: 20px;">라이브러리 📚</h2>
-        <div style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 20px;">
-            <button class="goal-opt" onclick="renderLibrary('N5')">N5</button>
-            <button class="goal-opt" onclick="renderLibrary('N4')">N4</button>
-            <button class="goal-opt" onclick="renderLibrary('N3')">N3</button>
-            <button class="goal-opt" onclick="renderLibrary('N2')">N2</button>
-            <button class="goal-opt" onclick="renderLibrary('N1')">N1</button>
+    <!-- [수정본] 플래시카드 세션 -->
+    <div id="screen-flashcard" class="screen hidden">
+        <div class="subbar">
+            <button type="button" class="back" onclick="exitFlashcard()">←</button>
+            <div style="flex:1; text-align:center; font-family:'DM Mono'; font-size: 13px;" id="fc-progress">1 / 1</div>
+            <div style="width:36px;"></div>
         </div>
-        <div id="lib-list" style="display: grid; grid-template-columns: 1fr; gap: 15px;"></div>
+        <div id="fc-front-screen">
+            <div class="fc-kanji" id="fc-kanji"></div>
+            <div class="fc-tts" id="fc-tts-btn" onclick="speakFcWord()" title="TTS">🔊</div>
+        </div>
+        <div class="fc-actions">
+            <button type="button" class="fc-btn-unk" id="fc-unk" onclick="setFcRating('unknown')">몰랐던</button>
+            <button type="button" class="fc-btn-mid" id="fc-mid" onclick="setFcRating('confused')">헷갈렸던</button>
+            <button type="button" class="fc-btn-easy" id="fc-easy" onclick="setFcRating('easy')">쉬웠던</button>
+        </div>
+        <div class="fc-nav-row">
+            <button type="button" class="fc-back-btn" onclick="toggleFcBack()">뒷면보기</button>
+            <button type="button" class="fc-next-btn" onclick="fcNext()">→</button>
+        </div>
+    </div>
+
+    <div id="screen-flashcard-back" class="screen hidden" style="padding: 0;">
+        <div class="subbar">
+            <button type="button" class="back" onclick="toggleFcBack()">← 앞면</button>
+            <div style="flex:1;"></div>
+        </div>
+        <div class="swipe-zone" id="fc-full-card-zone" style="padding-bottom: 12px;"></div>
+    </div>
+
+    <div id="screen-fc-result" class="screen hidden" style="padding: 18px; overflow-y: auto; padding-bottom: 40px;">
+        <h2 style="margin-bottom: 8px;">세션 결과</h2>
+        <div class="stat-grid" id="fc-stat-grid"></div>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px;">구분별로 정리되었습니다. 단어 가리기 / 뜻 가리기로 복습해 보세요.</p>
+        <div class="mask-toggles" id="fc-mask-toggles">
+            <button type="button" id="m-none" class="on" onclick="setFcMask('none')">둘 다 보기</button>
+            <button type="button" id="m-word" onclick="setFcMask('word')">단어 가리기</button>
+            <button type="button" id="m-mean" onclick="setFcMask('meaning')">뜻 가리기</button>
+        </div>
+        <div id="fc-result-sections"></div>
+        <button type="button" class="btn-primary" style="margin-top: 20px;" onclick="finishFcResult()">홈으로</button>
+    </div>
+
+    <!-- [흐름도 8] 라이브러리: 단어팩 / 보관함 -->
+    <div id="screen-library" class="screen hidden" style="padding: 18px; overflow-y: auto; padding-bottom: 36px;">
+        <div class="subbar" style="padding-left:0;">
+            <button type="button" class="back" onclick="showScreen('home')">←</button>
+            <h2 style="font-size: 18px;">라이브러리 📚</h2>
+        </div>
+        <div class="lib-tabs">
+            <button type="button" class="lib-tab active" id="tab-pack" onclick="setLibMainTab('pack')">단어팩</button>
+            <button type="button" class="lib-tab" id="tab-vault" onclick="setLibMainTab('vault')">보관함</button>
+        </div>
+        <div id="lib-pack-panel">
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+                <button type="button" class="goal-opt" onclick="setLibLevel('N5')">N5</button>
+                <button type="button" class="goal-opt" onclick="setLibLevel('N4')">N4</button>
+                <button type="button" class="goal-opt" onclick="setLibLevel('N3')">N3</button>
+                <button type="button" class="goal-opt" onclick="setLibLevel('N2')">N2</button>
+                <button type="button" class="goal-opt" onclick="setLibLevel('N1')">N1</button>
+            </div>
+            <p style="font-size:12px;color:var(--text-sub);margin-bottom:10px;">스키밍에서 「알고 있어요」로 넣은 카드 (레벨별)</p>
+            <div id="lib-pack-list"></div>
+        </div>
+        <div id="lib-vault-panel" class="hidden">
+            <div class="vault-sub">
+                <button type="button" class="active" data-vsub="history" onclick="setVaultSub('history')">학습기록</button>
+                <button type="button" data-vsub="bookmark" onclick="setVaultSub('bookmark')">북마크</button>
+                <button type="button" data-vsub="difficult" onclick="setVaultSub('difficult')">어려웠던 단어</button>
+                <button type="button" data-vsub="stuck" onclick="setVaultSub('stuck')">안 외워지는 단어</button>
+            </div>
+            <div class="mask-toggles" id="vault-mask">
+                <button type="button" class="on" id="vm-none" onclick="setVaultMask('none')">둘 다 보기</button>
+                <button type="button" id="vm-word" onclick="setVaultMask('word')">단어 가리기</button>
+                <button type="button" id="vm-mean" onclick="setVaultMask('meaning')">뜻 가리기</button>
+            </div>
+            <div id="lib-vault-list"></div>
+        </div>
     </div>
 
     <div id="screen-analysis" class="screen hidden" style="align-items: center; justify-content: center; text-align: center; padding: 40px;">
-        <div style="font-size: 60px; margin-bottom: 20px;">🚧</div>
+        <button type="button" class="back" style="position:absolute;left:16px;top:16px;font-size:22px;background:none;" onclick="showScreen('home')">←</button>
+        <div style="font-size: 56px; margin-bottom: 16px;">🚧</div>
         <h3>아직 개발 중입니다</h3>
-        <p style="color: var(--text-sub); margin-top: 10px;">곧 학습 분석 리포트를 제공할 예정입니다.</p>
+        <p style="color: var(--text-sub); margin-top: 10px; font-size: 14px;">분석 리포트는 추후 제공됩니다.</p>
     </div>
 
-    <nav id="bottom-nav" class="bottom-nav hidden">
-        <div class="nav-item active" onclick="navigate('home', this)"><div class="nav-icon">🏠</div><div>홈</div></div>
-        <div class="nav-item" onclick="navigate('skimming', this)"><div class="nav-icon">⚡</div><div>스키밍</div></div>
-        <div class="nav-item" onclick="navigate('library', this)"><div class="nav-icon">📚</div><div>라이브러리</div></div>
-        <div class="nav-item" onclick="navigate('analysis', this)"><div class="nav-icon">📊</div><div>분석</div></div>
-        <div class="nav-item" onclick="navigate('goal', this)"><div class="nav-icon">⚙️</div><div>설정</div></div>
-    </nav>
+    <div id="screen-quiz" class="screen hidden" style="align-items: center; justify-content: center; text-align: center; padding: 40px;">
+        <button type="button" class="back" style="position:absolute;left:16px;top:16px;font-size:22px;background:none;" onclick="showScreen('home')">←</button>
+        <div style="font-size: 48px;">🧩</div>
+        <p style="margin-top: 16px; font-weight: 800;">퀴즈 준비 중입니다</p>
+    </div>
 
+    <!-- 팁 모달 [수정본 6-1] -->
     <div class="modal-overlay" id="tip-modal" onclick="closeTip(event)">
-        <div class="modal-sheet">
-            <h3 style="margin-bottom: 20px;">💡 관련 단어</h3>
-            <div id="tip-content" style="display: flex; flex-direction: column; gap: 15px;"></div>
-            <button class="btn-primary" style="margin-top: 30px; background: #eee; color: #333; box-shadow: none;" onclick="document.getElementById('tip-modal').classList.remove('open')">닫기</button>
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+            <h3 style="margin-bottom: 16px;">💡 관련 단어</h3>
+            <div id="tip-content" style="display: flex; flex-direction: column; gap: 12px;"></div>
+            <button type="button" class="btn-primary" style="margin-top: 22px; background: #eee; color: #333; box-shadow: none;" onclick="document.getElementById('tip-modal').classList.remove('open')">닫기</button>
         </div>
     </div>
 </div>
 
 <script>
-    let state = {
-        phase: 'onboarding', isTutorial: true, tutIdx: 0,
-        theme: '', currentLvl: '', targetLvl: '', examDate: '', dailyGoal: 0,
-        db: [], library: [], skimmingQueue: [], skimIdx: 0, history: {}, bookmarks: new Set(), startTime: null
-    };
-
+(function(){
+    const STORAGE_KEY = 'jlpt_pro_save_v2';
     const EMOJIS = ['🌸','🏯','🌊','🌙','🍱','🏮','⛩️','🗻'];
 
-    async function init() {
+    let state = {
+        phase: 'onboarding',
+        isTutorial: true,
+        tutIdx: 0,
+        theme: '',
+        currentLvl: '',
+        targetLvl: '',
+        examDate: '',
+        dailyGoal: 20,
+        db: [],
+        /* 왼쪽 스와이프(알고 있어요) → 라이브러리 단어팩 id 목록 */
+        libraryKnownIds: [],
+        /* 오른쪽(학습할게요) → 이번 세션 플래시 대기열 */
+        learnQueue: [],
+        skimIdx: 0,
+        skimmingQueue: [],
+        /* 스키밍에 한 번이라도 나온 단어 */
+        skimSeenIds: [],
+        history: {},
+        bookmarks: [],
+        startTime: null,
+        /* 플래시카드에서 몰랐던 횟수 누적 (안 외워지는 단어) */
+        unknownCounts: {},
+        /* 어려웠던 = 몰랐던 선택 이력 */
+        difficultIds: [],
+        totalReviews: 0,
+        goalSettingsMode: false
+    };
+
+    let fcSession = {
+        queue: [],
+        index: 0,
+        ratings: {},
+        wordStart: 0,
+        wordTimes: [],
+        sessionStart: 0,
+        currentRating: null
+    };
+
+    let libLevel = 'N3';
+    let libMainTab = 'pack';
+    let vaultSub = 'history';
+    let vaultMask = 'none';
+    let fcMask = 'none';
+    let jaVoice = null;
+
+    function loadState() {
         try {
-            const res = await fetch('jlpt_n3_expanded.json');
-            state.db = await res.json();
-            // [중요] 기존 저장 데이터를 무시하고 처음부터 흐르게 하려면 아래를 주석 처리하거나 clear 하세요.
-            // localStorage.clear(); 
-        } catch(e) { console.error("Data load failed"); }
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const o = JSON.parse(raw);
+            state.currentLvl = o.currentLvl || '';
+            state.targetLvl = o.targetLvl || '';
+            state.examDate = o.examDate || '';
+            state.dailyGoal = o.dailyGoal || 20;
+            state.theme = o.theme || '';
+            state.libraryKnownIds = o.libraryKnownIds || [];
+            state.skimSeenIds = o.skimSeenIds || [];
+            state.bookmarks = o.bookmarks || [];
+            state.history = o.history || {};
+            state.unknownCounts = o.unknownCounts || {};
+            state.difficultIds = o.difficultIds || [];
+            state.totalReviews = o.totalReviews || 0;
+            state.phase = o.phase || 'onboarding';
+            state.learnQueue = o.learnQueue || [];
+        } catch (e) { console.warn(e); }
     }
 
-    // --- ONBOARDING ---
-    function setTheme(t, el) {
+    function save() {
+        const toSave = {
+            currentLvl: state.currentLvl,
+            targetLvl: state.targetLvl,
+            examDate: state.examDate,
+            dailyGoal: state.dailyGoal,
+            theme: state.theme,
+            libraryKnownIds: state.libraryKnownIds,
+            skimSeenIds: state.skimSeenIds,
+            bookmarks: state.bookmarks,
+            history: state.history,
+            unknownCounts: state.unknownCounts,
+            difficultIds: state.difficultIds,
+            totalReviews: state.totalReviews,
+            phase: state.phase,
+            learnQueue: state.learnQueue
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    }
+
+    function wordById(id) { return state.db.find(w => w.id === id); }
+
+    function pickJaVoice() {
+        const voices = speechSynthesis.getVoices();
+        jaVoice = voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang && v.lang.startsWith('ja')) || null;
+    }
+
+    /* [수정본] TTS: 일본어 음성, 느린 속도 */
+    function speak(text) {
+        if (!text) return;
+        pickJaVoice();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'ja-JP';
+        u.rate = 0.82;
+        u.pitch = 1;
+        if (jaVoice) u.voice = jaVoice;
+        speechSynthesis.cancel();
+        speechSynthesis.speak(u);
+    }
+
+    if (typeof speechSynthesis !== 'undefined') {
+        speechSynthesis.onvoiceschanged = pickJaVoice;
+    }
+
+    /* [수정본 6-3] 예문 후리가나 */
+    function applyRuby(text, alts) {
+        if (!text) return '';
+        if (!alts || !alts.length) return text.replace(/</g, '&lt;');
+        let html = text;
+        const sorted = [...alts].sort((a, b) => (b.kanji || '').length - (a.kanji || '').length);
+        sorted.forEach(a => {
+            if (!a.kanji) return;
+            const regex = new RegExp(a.kanji.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+            html = html.replace(regex, '<ruby>' + a.kanji + '<rt>' + (a.furigana || '') + '</rt></ruby>');
+        });
+        return html;
+    }
+
+    function init() {
+        loadState();
+        fetch('jlpt_n3_expanded.json')
+            .then(r => r.json())
+            .then(data => {
+                state.db = data;
+                if (state.phase === 'main') {
+                    document.getElementById('screen-onboarding').classList.replace('active', 'hidden');
+                    document.getElementById('screen-home').classList.replace('hidden', 'active');
+                    renderHome();
+                }
+            })
+            .catch(() => console.error('Data load failed'));
+    }
+
+    window.setTheme = function(t, el) {
         state.theme = t;
         document.querySelectorAll('#screen-onboarding .goal-opt').forEach(b => b.classList.remove('active'));
         el.classList.add('active');
         document.getElementById('btn-theme-confirm').disabled = false;
-    }
-    function showIntro() { showScreen('intro'); }
+    };
 
-    // --- SKIMMING ENGINE ---
-    function startSkimming(isTut) {
-        state.isTutorial = isTut;
+    window.showIntro = function() { showScreen('intro'); };
+
+    window.startSkimming = function(isTut) {
+        state.isTutorial = !!isTut;
         state.startTime = Date.now();
-        if(!isTut) {
-            state.skimmingQueue = state.db.filter(w => w.level === state.targetLvl).slice(0, state.dailyGoal);
+        if (!isTut) {
+            const pool = state.db.filter(w => w.level === state.targetLvl);
+            state.skimmingQueue = pool.slice(0, Math.min(state.dailyGoal, pool.length));
             state.skimIdx = 0;
+        } else {
+            state.tutIdx = 0;
         }
         showScreen('skimming');
         updateSkimUI();
     }
 
-    /* [증명: 수정본 6-3] 예문 후리가나 적용 */
-    function applyRuby(text, alts) {
-        if(!alts || !alts.length) return text;
-        let html = text;
-        alts.sort((a,b) => b.kanji.length - a.kanji.length).forEach(a => {
-            const regex = new RegExp(a.kanji, 'g');
-            html = html.replace(regex, `<ruby>${a.kanji}<rt>${a.furigana}</rt></ruby>`);
-        });
-        return html;
+    function updateSkimUI() {
+        const word = state.isTutorial ? state.db[state.tutIdx] : state.skimmingQueue[state.skimIdx];
+        if (!word) return;
+        const total = state.isTutorial ? 6 : state.skimmingQueue.length;
+        const cur = state.isTutorial ? state.tutIdx + 1 : state.skimIdx + 1;
+        document.getElementById('skim-counter').innerText = cur + ' / ' + total + (state.isTutorial ? '' : ' · 세션 ' + total + '장');
+        document.getElementById('skim-lvl-badge').innerText = word.level;
+        renderCardShell(word, 'skim-zone', false);
     }
 
-    function renderCard(word) {
-        const zone = document.getElementById('skim-zone');
+    window.goHomeFromSkim = function() {
+        save();
+        showScreen('home');
+        renderHome();
+    };
+
+    function renderCardShell(word, zoneId, noSwipe) {
+        const zone = document.getElementById(zoneId);
         zone.innerHTML = '';
         const card = document.createElement('div');
         card.className = 'word-card';
-        const isBm = state.bookmarks.has(word.id);
-        
-        card.innerHTML = `
-            <div class="swipe-overlay left"><h2>✅ 아는 단어</h2><p>라이브러리에 넣을게요</p></div>
-            <div class="swipe-overlay right"><h2>📖 학습할 단어</h2><p>플래시카드에서 만나요</p></div>
-            <div class="c-img">
-                <span>${EMOJIS[word.id % 8]}</span>
-                <div class="c-lvl">${word.level}</div>
-                <div class="c-bookmark ${isBm?'active':''}" onclick="toggleBm(${word.id}, this)">🔖</div>
-            </div>
-            <div class="c-body">
-                <div class="c-furi">${word.furigana}</div>
-                <div class="c-kanji">${word.kanji} <span onclick="speak('${word.kanji}')" style="font-size:20px; cursor:pointer;">🔊</span></div>
-                <div class="c-meaning">${word.meaning}</div>
-                <div class="c-pos">[${word.pos}]</div>
-                <div class="c-ex">
-                    <p style="font-family:'Noto Sans JP'; margin-bottom:5px;">${applyRuby(word.example_jp, word.alt_spellings)} <span onclick="speak('${word.example_jp.replace(/'/g,"")}')" style="cursor:pointer;">🔊</span></p>
-                    <p style="font-size:12px; color:var(--text-sub);">${word.example_kr}</p>
-                </div>
-            </div>
-            <div style="padding:15px; text-align:right;">
-                <button class="btn-primary" style="padding:8px 15px; width:auto; font-size:12px;" onclick="openTip(${word.id})">팁 💡</button>
-            </div>
-        `;
+        const bm = state.bookmarks.includes(word.id);
+        card.innerHTML =
+            '<div class="swipe-overlay left"><h2 style="font-size:20px;">아는 단어</h2><p>라이브러리에 넣을게요</p></div>' +
+            '<div class="swipe-overlay right"><h2 style="font-size:20px;">학습할 단어</h2><p>플래시카드에서 만나요</p></div>' +
+            '<div class="c-img"><span>' + EMOJIS[word.id % 8] + '</span>' +
+            '<div class="c-lvl">' + word.level + '</div>' +
+            '<div class="c-bookmark' + (bm ? ' active' : '') + '" data-bid="' + word.id + '">🔖</div></div>' +
+            '<div class="c-body">' +
+            '<div class="c-furi">' + escapeHtml(word.furigana) + '</div>' +
+            '<div class="c-kanji">' + escapeHtml(word.kanji) + ' <span class="tts-w" data-t="' + escapeAttr(word.kanji) + '" style="font-size:18px;cursor:pointer;">🔊</span></div>' +
+            '<div class="c-meaning">' + escapeHtml(word.meaning) + '</div>' +
+            '<div class="c-pos">[' + escapeHtml(word.pos) + ']</div>' +
+            '<div class="c-ex">' +
+            '<p style="font-family:\'Noto Sans JP\';margin-bottom:6px;">' + applyRuby(word.example_jp, word.alt_spellings) +
+            ' <span class="tts-e" data-t="' + escapeAttr(word.example_jp) + '" style="cursor:pointer;">🔊</span></p>' +
+            '<p style="font-size:12px;color:var(--text-sub);">' + escapeHtml(word.example_kr) + '</p></div></div>' +
+            '<div style="padding:12px 14px;text-align:right;">' +
+            '<button type="button" class="btn-primary" style="padding:8px 14px;width:auto;font-size:12px;background:#f0f0f0;color:#333;box-shadow:none;" data-tip="' + word.id + '">팁 💡</button></div>';
         zone.appendChild(card);
-        bindSwipe(card);
+        card.querySelector('.c-bookmark').addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleBm(word.id, this);
+        });
+        card.querySelector('[data-tip]').addEventListener('click', function(e) {
+            e.stopPropagation();
+            openTip(word.id);
+        });
+        card.querySelectorAll('.tts-w,.tts-e').forEach(el => {
+            el.addEventListener('click', function(ev) {
+                ev.stopPropagation();
+                speak(this.getAttribute('data-t'));
+            });
+        });
+        if (!noSwipe) bindSwipe(card);
+        return card;
     }
+
+    function escapeHtml(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function escapeAttr(s) {
+        if (!s) return '';
+        return String(s).replace(/\\/g,'\\\\').replace(/'/g, "\\'");
+    }
+
+    window.openTip = function(id) {
+        const word = wordById(id);
+        if (!word || !word.tips) return;
+        const content = document.getElementById('tip-content');
+        content.innerHTML = word.tips.map(function(t) {
+            return '<div style="background:#f5f5f7;padding:14px;border-radius:16px;">' +
+                '<p style="color:var(--accent);font-size:11px;font-weight:800;">[' + escapeHtml(t.pos || '') + '] ' + escapeHtml(t.furigana || '') + '</p>' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<h3 style="font-family:\'Noto Sans JP\';">' + escapeHtml(t.kanji) + '</h3>' +
+                '<span class="tip-tts" data-t="' + escapeAttr(t.kanji) + '" style="cursor:pointer;font-size:20px;">🔊</span></div>' +
+                '<p style="font-weight:700;margin-top:6px;">' + escapeHtml(t.meaning) + '</p></div>';
+        }).join('');
+        content.querySelectorAll('.tip-tts').forEach(function(el) {
+            el.addEventListener('click', function() { speak(el.getAttribute('data-t')); });
+        });
+        document.getElementById('tip-modal').classList.add('open');
+    };
+
+    window.closeTip = function(e) {
+        if (e.target.id === 'tip-modal') e.target.classList.remove('open');
+    };
 
     function bindSwipe(card) {
-        let startX = 0, moveX = 0;
-        const start = (e) => { startX = e.type.includes('touch')?e.touches[0].clientX:e.clientX; card.style.transition = 'none'; };
-        const move = (e) => {
-            if(!startX) return;
-            moveX = (e.type.includes('touch')?e.touches[0].clientX:e.clientX) - startX;
-            card.style.transform = `translateX(${moveX}px) rotate(${moveX/20}deg)`;
-            if(moveX < -50) card.classList.add('sw-left');
-            else if(moveX > 50) card.classList.add('sw-right');
-            else card.classList.remove('sw-left', 'sw-right');
+        let startX = 0, moveX = 0, active = false;
+        const start = function(e) {
+            active = true;
+            startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            card.style.transition = 'none';
         };
-        const end = () => {
-            if(Math.abs(moveX) > 130) handleAction(moveX < 0 ? 'left' : 'right');
-            else { card.style.transition = '0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; card.style.transform = ''; card.classList.remove('sw-left', 'sw-right'); }
-            startX = 0; moveX = 0;
+        const move = function(e) {
+            if (!active || !startX) return;
+            moveX = (e.type.includes('touch') ? e.touches[0].clientX : e.clientX) - startX;
+            card.style.transform = 'translateX(' + moveX + 'px) rotate(' + (moveX / 20) + 'deg)';
+            if (moveX < -50) card.classList.add('sw-left');
+            else if (moveX > 50) card.classList.add('sw-right');
+            else { card.classList.remove('sw-left'); card.classList.remove('sw-right'); }
         };
-        card.addEventListener('touchstart', start); card.addEventListener('mousedown', start);
-        window.addEventListener('touchmove', move); window.addEventListener('mousemove', move);
-        window.addEventListener('touchend', end); window.addEventListener('mouseup', end);
+        const end = function() {
+            if (!active) return;
+            active = false;
+            if (Math.abs(moveX) > 130) handleAction(moveX < 0 ? 'left' : 'right');
+            else {
+                card.style.transition = '0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                card.style.transform = '';
+                card.classList.remove('sw-left');
+                card.classList.remove('sw-right');
+            }
+            startX = 0;
+            moveX = 0;
+        };
+        card.addEventListener('touchstart', start, { passive: true });
+        card.addEventListener('mousedown', start);
+        window.addEventListener('touchmove', move, { passive: true });
+        window.addEventListener('mousemove', move);
+        window.addEventListener('touchend', end);
+        window.addEventListener('mouseup', end);
     }
 
-    function handleAction(dir) {
-        if(state.isTutorial) {
+    function recordSkimSeen(id) {
+        if (!state.skimSeenIds.includes(id)) state.skimSeenIds.push(id);
+    }
+
+    window.handleAction = function(dir) {
+        if (state.isTutorial) {
             state.tutIdx++;
-            if(state.tutIdx >= 6) { finishTutorial(); }
+            if (state.tutIdx >= 6) finishTutorial();
             else updateSkimUI();
-        } else {
-            const word = state.skimmingQueue[state.skimIdx];
-            if(dir === 'left') { if(!state.library.find(w=>w.id===word.id)) state.library.push(word); }
-            const today = new Date().toDateString();
-            state.history[today] = (state.history[today] || 0) + 1;
-            state.skimIdx++;
-            if(state.skimIdx >= state.dailyGoal) { alert("오늘의 목표 달성!"); navigate('home'); }
-            else updateSkimUI();
+            return;
         }
+        const word = state.skimmingQueue[state.skimIdx];
+        if (!word) return;
+        recordSkimSeen(word.id);
+        const today = new Date().toDateString();
+        state.history[today] = (state.history[today] || 0) + 1;
+
+        if (dir === 'left') {
+            if (!state.libraryKnownIds.includes(word.id)) state.libraryKnownIds.push(word.id);
+        } else {
+            if (!state.learnQueue.includes(word.id)) state.learnQueue.push(word.id);
+        }
+
+        state.skimIdx++;
         save();
+
+        if (state.skimIdx >= state.skimmingQueue.length) {
+            endSkimmingSession();
+            return;
+        }
+        updateSkimUI();
+    };
+
+    function endSkimmingSession() {
+        save();
+        if (state.learnQueue.length > 0) {
+            if (confirm('방금 스키밍했던 단어를 플래시카드로 외워볼까요?')) {
+                startFlashcardSession(state.learnQueue.slice());
+                return;
+            }
+        }
+        alert(state.learnQueue.length === 0 ? '오늘 세션을 완료했습니다. (학습할 단어 없음)' : '홈으로 이동합니다.');
+        showScreen('home');
+        renderHome();
     }
 
     function finishTutorial() {
         const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
-        document.getElementById('report-time').innerText = `${Math.floor(elapsed/60)}분 ${elapsed%60}초`;
+        document.getElementById('report-time').innerText = Math.floor(elapsed / 60) + '분 ' + (elapsed % 60) + '초';
         showScreen('report');
     }
 
-    // --- GOAL SETTING (BUG FIXED) ---
-    function showGoalSetting() { showScreen('goal'); }
+    window.showGoalSetting = function(fromSettings) {
+        state.goalSettingsMode = !!fromSettings;
+        document.getElementById('goal-title').innerText = fromSettings ? '설정 · 목표 수정 ⚙️' : '목표 설정하기 🎯';
+        if (state.currentLvl) {
+            document.querySelectorAll('[data-g="current"]').forEach(function(b) {
+                b.classList.toggle('active', b.getAttribute('data-v') === state.currentLvl);
+            });
+        }
+        if (state.targetLvl) {
+            document.querySelectorAll('[data-g="target"]').forEach(function(b) {
+                b.classList.toggle('active', b.getAttribute('data-v') === state.targetLvl);
+            });
+        }
+        document.getElementById('goal-date').value = state.examDate || '';
+        document.getElementById('goal-count').value = state.dailyGoal || '';
+        checkGoalReady();
+        showScreen('goal');
+    };
 
-    function setGoal(key, val, el) {
-        if(key === 'current') state.currentLvl = val;
-        else if(key === 'target') state.targetLvl = val;
-        el.parentElement.querySelectorAll('.goal-opt').forEach(b => b.classList.remove('active'));
+    window.setGoal = function(key, val, el) {
+        if (key === 'current') state.currentLvl = val;
+        else if (key === 'target') state.targetLvl = val;
+        el.parentElement.querySelectorAll('.goal-opt').forEach(function(b) {
+            if (b.getAttribute('data-g') === key) b.classList.remove('active');
+        });
         el.classList.add('active');
         checkGoalReady();
-    }
+    };
 
-    /* [수정본 오류 해결] 모든 항목 입력 시 버튼 활성화 */
-    function checkGoalReady() {
+    window.checkGoalReady = function() {
         const date = document.getElementById('goal-date').value;
-        const count = document.getElementById('goal-count').value;
-        const isReady = state.currentLvl && state.targetLvl && date && count > 0;
-        document.getElementById('btn-goal-complete').disabled = !isReady;
-    }
+        const count = parseInt(document.getElementById('goal-count').value, 10);
+        const hint = document.getElementById('goal-hint');
+        const ready = state.currentLvl && state.targetLvl && date && count > 0;
+        document.getElementById('btn-goal-complete').disabled = !ready;
+        if (state.targetLvl && count > 0) {
+            const n = state.db.filter(function(w) { return w.level === state.targetLvl; }).length;
+            hint.style.display = 'block';
+            hint.textContent = state.targetLvl + ' 달성을 위한 필수 암기 표현(데이터 기준): 약 ' + n + '개';
+        } else {
+            hint.style.display = 'none';
+        }
+    };
 
-    function completeGoal() {
+    window.completeGoal = function() {
         state.examDate = document.getElementById('goal-date').value;
-        state.dailyGoal = parseInt(document.getElementById('goal-count').value);
+        state.dailyGoal = parseInt(document.getElementById('goal-count').value, 10);
         state.phase = 'main';
-        document.getElementById('bottom-nav').classList.remove('hidden');
-        navigate('home');
         save();
+        showScreen('home');
+        renderHome();
+    };
+
+    function streakCount() {
+        let n = 0;
+        const d = new Date();
+        for (let i = 0; i < 400; i++) {
+            const t = new Date(d.getFullYear(), d.getMonth(), d.getDate() - i).toDateString();
+            if (state.history[t] && state.history[t] > 0) n++;
+            else break;
+        }
+        return n;
     }
 
-    // --- CALENDAR ---
+    window.renderHome = function() {
+        renderCalendar();
+        document.getElementById('home-title').innerText = 'JLPT ' + (state.targetLvl || 'N3') + ' 정복';
+        document.getElementById('streak-n').innerText = String(streakCount());
+        if (state.examDate) {
+            const d = Math.ceil((new Date(state.examDate) - new Date()) / 86400000);
+            document.getElementById('home-dday').innerText = 'D-' + (d >= 0 ? d : 0);
+        } else {
+            document.getElementById('home-dday').innerText = 'D-??';
+        }
+    };
+
     function renderCalendar() {
         const container = document.getElementById('main-calendar');
         container.innerHTML = '';
         const today = new Date();
-        for(let i=-1; i<4; i++) {
+        const dg = state.dailyGoal || 20;
+        for (let i = -2; i <= 4; i++) {
             const m = new Date(today.getFullYear(), today.getMonth() + i, 1);
             const div = document.createElement('div');
             div.className = 'cal-month';
-            div.innerHTML = `<h3>${m.getFullYear()}년 ${m.getMonth()+1}월</h3><div class="cal-grid"></div>`;
-            const grid = div.querySelector('.cal-grid');
-            const days = new Date(m.getFullYear(), m.getMonth()+1, 0).getDate();
+            const h = document.createElement('h3');
+            h.style.marginBottom = '12px';
+            h.style.fontSize = '16px';
+            h.textContent = m.getFullYear() + '년 ' + (m.getMonth() + 1) + '월';
+            div.appendChild(h);
+            const grid = document.createElement('div');
+            grid.className = 'cal-grid';
+            const wds = ['일','월','화','수','목','금','토'];
+            wds.forEach(function(w) {
+                const hd = document.createElement('div');
+                hd.className = 'cal-day-head';
+                hd.textContent = w;
+                grid.appendChild(hd);
+            });
+            const days = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
             const startDay = new Date(m.getFullYear(), m.getMonth(), 1).getDay();
-            for(let e=0; e<startDay; e++) grid.appendChild(document.createElement('div'));
-            for(let d=1; d<=days; d++) {
+            for (let e = 0; e < startDay; e++) grid.appendChild(document.createElement('div'));
+            for (let d = 1; d <= days; d++) {
                 const dateStr = new Date(m.getFullYear(), m.getMonth(), d).toDateString();
                 const dayDiv = document.createElement('div');
-                dayDiv.className = `cal-day ${dateStr === today.toDateString()?'today':''} ${state.history[dateStr]>=state.dailyGoal?'done':''}`;
-                dayDiv.innerText = d;
+                const done = state.history[dateStr] || 0;
+                const p = Math.min(100, Math.round((done / dg) * 100));
+                dayDiv.className = 'cal-day' + (dateStr === today.toDateString() ? ' today' : '');
+                const ring = document.createElement('div');
+                ring.className = 'ring';
+                ring.style.setProperty('--p', p + '%');
+                const num = document.createElement('span');
+                num.className = 'num';
+                num.textContent = String(d);
+                dayDiv.appendChild(ring);
+                dayDiv.appendChild(num);
                 grid.appendChild(dayDiv);
             }
+            div.appendChild(grid);
             container.appendChild(div);
         }
     }
 
-    function openTip(id) {
-        const word = state.db.find(w => w.id === id);
-        const content = document.getElementById('tip-content');
-        content.innerHTML = word.tips.map(t => `
-            <div style="background:#f5f5f7; padding:15px; border-radius:15px;">
-                <p style="color:var(--accent); font-size:12px;">${t.furigana}</p>
-                <div style="display:flex; justify-content:space-between;">
-                    <h3 style="font-family:'Noto Sans JP';">${t.kanji}</h3>
-                    <span onclick="speak('${t.kanji}')" style="cursor:pointer;">🔊</span>
-                </div>
-                <p style="font-weight:700;">${t.meaning}</p>
-            </div>
-        `).join('');
-        document.getElementById('tip-modal').classList.add('open');
-    }
-
-    function navigate(id, el) {
-        showScreen(id);
-        if(id === 'home') {
-            renderCalendar();
-            document.getElementById('home-title').innerText = `JLPT ${state.targetLvl} 정복 프로젝트`;
-            const d = Math.ceil((new Date(state.examDate)-new Date())/86400000);
-            document.getElementById('home-dday').innerText = `D-${d}`;
+    window.openSkimmingFromHome = function() {
+        if (!state.targetLvl) {
+            alert('먼저 설정에서 목표 레벨을 지정해 주세요.');
+            showGoalSetting(true);
+            return;
         }
-        if(id === 'skimming') startSkimming(false);
-        if(id === 'library') renderLibrary(state.targetLvl);
-        if(id === 'goal') showGoalSetting(); 
-        if(el) { document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active')); el.classList.add('active'); }
+        startSkimming(false);
+    };
+
+    window.openFlashcardFromHome = function() {
+        if (!state.learnQueue || state.learnQueue.length === 0) {
+            alert('플래시카드에 담긴 단어가 없습니다. 스키밍에서 「학습할게요」로 단어를 모아 주세요.');
+            return;
+        }
+        startFlashcardSession(state.learnQueue.slice());
+    };
+
+    function startFlashcardSession(ids) {
+        fcSession = {
+            queue: ids.slice(),
+            index: 0,
+            ratings: {},
+            wordStart: Date.now(),
+            wordTimes: [],
+            sessionStart: Date.now(),
+            currentRating: null
+        };
+        showScreen('flashcard');
+        document.getElementById('screen-flashcard').classList.add('active');
+        document.getElementById('screen-flashcard-back').classList.add('hidden');
+        document.getElementById('screen-flashcard-back').classList.remove('active');
+        renderFcFront();
     }
 
-    function renderLibrary(lv) {
-        const list = document.getElementById('lib-list');
-        list.innerHTML = '';
-        const filtered = state.library.filter(w => w.level === lv);
-        filtered.forEach(w => {
-            const card = document.createElement('div');
-            card.className = 'cal-month';
-            card.style.cssText = 'padding:15px; margin-bottom:0; text-align:left; scroll-snap-align: none;';
-            card.innerHTML = `<div style="font-size:12px; color:var(--accent);">${w.furigana}</div><b>${w.kanji}</b><br><span style="font-size:14px; color:var(--primary); font-weight:700;">${w.meaning}</span>`;
-            list.appendChild(card);
+    window.exitFlashcard = function() {
+        if (confirm('플래시카드를 중단할까요?')) {
+            showScreen('home');
+            renderHome();
+        }
+    };
+
+    window.speakFcWord = function() {
+        const id = fcSession.queue[fcSession.index];
+        const w = wordById(id);
+        if (w) speak(w.kanji);
+    };
+
+    window.setFcRating = function(r) {
+        fcSession.currentRating = r;
+        document.getElementById('fc-unk').classList.toggle('sel', r === 'unknown');
+        document.getElementById('fc-mid').classList.toggle('sel', r === 'confused');
+        document.getElementById('fc-easy').classList.toggle('sel', r === 'easy');
+    };
+
+    window.toggleFcBack = function() {
+        const back = document.getElementById('screen-flashcard-back');
+        const main = document.getElementById('screen-flashcard');
+        if (back.classList.contains('hidden')) {
+            const id = fcSession.queue[fcSession.index];
+            const w = wordById(id);
+            if (!w) return;
+            renderCardShell(w, 'fc-full-card-zone', true);
+            back.classList.remove('hidden');
+            back.classList.add('active');
+            main.classList.add('hidden');
+            main.classList.remove('active');
+        } else {
+            back.classList.add('hidden');
+            back.classList.remove('active');
+            main.classList.remove('hidden');
+            main.classList.add('active');
+        }
+    };
+
+    window.fcNext = function() {
+        const id = fcSession.queue[fcSession.index];
+        if (!id) return;
+        if (!fcSession.currentRating) {
+            alert('몰랐던 / 헷갈렸던 / 쉬웠던 중 하나를 선택해 주세요.');
+            return;
+        }
+        const elapsed = Date.now() - fcSession.wordStart;
+        fcSession.wordTimes.push(elapsed);
+        fcSession.ratings[id] = fcSession.currentRating;
+
+        if (fcSession.currentRating === 'unknown') {
+            state.unknownCounts[id] = (state.unknownCounts[id] || 0) + 1;
+            if (!state.difficultIds.includes(id)) state.difficultIds.push(id);
+        }
+        state.totalReviews++;
+
+        fcSession.index++;
+        fcSession.currentRating = null;
+        document.getElementById('fc-unk').classList.remove('sel');
+        document.getElementById('fc-mid').classList.remove('sel');
+        document.getElementById('fc-easy').classList.remove('sel');
+
+        if (fcSession.index >= fcSession.queue.length) {
+            fcSession.queue.forEach(function(qid) {
+                const ix = state.learnQueue.indexOf(qid);
+                if (ix >= 0) state.learnQueue.splice(ix, 1);
+            });
+            save();
+            showFcResultScreen();
+            return;
+        }
+        fcSession.wordStart = Date.now();
+        document.getElementById('screen-flashcard-back').classList.add('hidden');
+        document.getElementById('screen-flashcard-back').classList.remove('active');
+        document.getElementById('screen-flashcard').classList.remove('hidden');
+        document.getElementById('screen-flashcard').classList.add('active');
+        renderFcFront();
+    };
+
+    function renderFcFront() {
+        const id = fcSession.queue[fcSession.index];
+        const w = wordById(id);
+        document.getElementById('fc-kanji').textContent = w ? w.kanji : '';
+        document.getElementById('fc-progress').textContent = (fcSession.index + 1) + ' / ' + fcSession.queue.length;
+        fcSession.wordStart = Date.now();
+    }
+
+    function showFcResultScreen() {
+        const totalMs = Date.now() - fcSession.sessionStart;
+        const n = fcSession.queue.length;
+        const avgWord = fcSession.wordTimes.length ? fcSession.wordTimes.reduce(function(a, b) { return a + b; }, 0) / fcSession.wordTimes.length : 0;
+        const groups = { unknown: [], confused: [], easy: [] };
+        fcSession.queue.forEach(function(id) {
+            const r = fcSession.ratings[id];
+            const w = wordById(id);
+            if (!w) return;
+            if (r === 'unknown') groups.unknown.push(w);
+            else if (r === 'confused') groups.confused.push(w);
+            else if (r === 'easy') groups.easy.push(w);
+        });
+        const easyN = groups.easy.length;
+        const rate = n ? Math.round((easyN / n) * 100) : 0;
+
+        const stat = document.getElementById('fc-stat-grid');
+        stat.innerHTML =
+            '<div class="stat-box"><div class="v">' + n + '</div><div style="font-size:12px;color:var(--text-sub);">복습 횟수(단어)</div></div>' +
+            '<div class="stat-box"><div class="v">' + rate + '%</div><div style="font-size:12px;color:var(--text-sub);">암기율(쉬웠던 비율)</div></div>' +
+            '<div class="stat-box"><div class="v">' + formatMs(totalMs) + '</div><div style="font-size:12px;color:var(--text-sub);">총 소요 시간</div></div>' +
+            '<div class="stat-box"><div class="v">' + formatMs(avgWord) + '</div><div style="font-size:12px;color:var(--text-sub);">단어당 평균 시간</div></div>';
+
+        fcMask = 'none';
+        updateFcMaskButtons();
+        renderFcResultSections(groups);
+        showScreen('fc-result');
+    }
+
+    function formatMs(ms) {
+        if (ms < 60000) return (Math.round(ms / 100) / 10) + '초';
+        const s = Math.floor(ms / 1000);
+        const m = Math.floor(s / 60);
+        return m + '분 ' + (s % 60) + '초';
+    }
+
+    function renderFcResultSections(groups) {
+        const host = document.getElementById('fc-result-sections');
+        host.innerHTML = '';
+        [['unknown','몰랐던',groups.unknown,'#c62828'],['confused','헷갈렸던',groups.confused,'#757575'],['easy','쉬웠던',groups.easy,'#2e7d32']].forEach(function(row) {
+            const key = row[0], title = row[1], arr = row[2], col = row[3];
+            const sec = document.createElement('div');
+            sec.className = 'fc-result-section';
+            sec.innerHTML = '<span class="pill" style="background:rgba(0,0,0,0.06);color:' + col + ';">' + title + '</span>';
+            arr.forEach(function(w) {
+                sec.appendChild(buildResultRow(w));
+            });
+            host.appendChild(sec);
         });
     }
 
-    function updateSkimUI() {
-        const word = state.isTutorial ? state.db[state.tutIdx] : state.skimmingQueue[state.skimIdx];
-        document.getElementById('skim-counter').innerText = state.isTutorial ? `${state.tutIdx+1} / 6` : `${state.skimIdx+1} / ${state.dailyGoal}`;
-        document.getElementById('skim-lvl-badge').innerText = word.level;
-        renderCard(word);
+    function buildResultRow(w) {
+        const wrap = document.createElement('div');
+        wrap.className = 'learn-card-mini';
+        const inner = document.createElement('div');
+        inner.className = 'inner';
+        const hideWord = (fcMask === 'word');
+        const hideMean = (fcMask === 'meaning');
+        inner.innerHTML =
+            '<div style="padding:14px;border-bottom:1px solid var(--border);">' +
+            '<div style="font-size:12px;color:var(--accent);">' + (hideWord ? '••••' : escapeHtml(w.furigana)) + '</div>' +
+            '<div style="font-size:22px;font-family:\'Noto Sans JP\';font-weight:900;">' + (hideWord ? '████' : escapeHtml(w.kanji)) + '</div>' +
+            '<div style="font-weight:700;margin-top:4px;">' + (hideMean ? '••••••' : escapeHtml(w.meaning)) + '</div></div>';
+        wrap.appendChild(inner);
+        return wrap;
     }
 
-    function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.replace('active','hidden')); document.getElementById('screen-'+id).classList.replace('hidden','active'); }
-    function speak(t) { const u=new SpeechSynthesisUtterance(t); u.lang='ja-JP'; speechSynthesis.speak(u); }
-    function toggleBm(id, el) { if(state.bookmarks.has(id)){ state.bookmarks.delete(id); el.classList.remove('active'); el.innerText='🏷️'; } else { state.bookmarks.add(id); el.classList.add('active'); el.innerText='🔖'; } save(); }
-    function closeTip(e) { if(e.target.id==='tip-modal') e.target.classList.remove('open'); }
-    function save() { const toSave = {...state, bookmarks: Array.from(state.bookmarks)}; localStorage.setItem('jlpt_pro_save', JSON.stringify(toSave)); }
+    window.setFcMask = function(mode) {
+        fcMask = mode;
+        updateFcMaskButtons();
+        const groups = { unknown: [], confused: [], easy: [] };
+        fcSession.queue.forEach(function(id) {
+            const r = fcSession.ratings[id];
+            const w = wordById(id);
+            if (!w) return;
+            if (r === 'unknown') groups.unknown.push(w);
+            else if (r === 'confused') groups.confused.push(w);
+            else if (r === 'easy') groups.easy.push(w);
+        });
+        renderFcResultSections(groups);
+    };
+
+    function updateFcMaskButtons() {
+        document.getElementById('m-none').classList.toggle('on', fcMask === 'none');
+        document.getElementById('m-word').classList.toggle('on', fcMask === 'word');
+        document.getElementById('m-mean').classList.toggle('on', fcMask === 'meaning');
+    }
+
+    window.finishFcResult = function() {
+        showScreen('home');
+        renderHome();
+    };
+
+    window.navigateLibrary = function() {
+        showScreen('library');
+        setLibMainTab(libMainTab);
+    };
+
+    window.setLibMainTab = function(tab) {
+        libMainTab = tab;
+        document.getElementById('tab-pack').classList.toggle('active', tab === 'pack');
+        document.getElementById('tab-vault').classList.toggle('active', tab === 'vault');
+        document.getElementById('lib-pack-panel').classList.toggle('hidden', tab !== 'pack');
+        document.getElementById('lib-vault-panel').classList.toggle('hidden', tab !== 'vault');
+        if (tab === 'pack') renderLibPack();
+        else renderLibVault();
+    };
+
+    window.setLibLevel = function(lv) {
+        libLevel = lv;
+        document.querySelectorAll('#lib-pack-panel .goal-opt').forEach(function(b) {
+            b.classList.toggle('active', b.textContent.trim() === lv);
+        });
+        renderLibPack();
+    };
+
+    window.setVaultSub = function(sub) {
+        vaultSub = sub;
+        document.querySelectorAll('.vault-sub button').forEach(function(b) {
+            b.classList.toggle('active', b.getAttribute('data-vsub') === sub);
+        });
+        renderLibVault();
+    };
+
+    window.setVaultMask = function(mode) {
+        vaultMask = mode;
+        document.getElementById('vm-none').classList.toggle('on', mode === 'none');
+        document.getElementById('vm-word').classList.toggle('on', mode === 'word');
+        document.getElementById('vm-mean').classList.toggle('on', mode === 'meaning');
+        renderLibVault();
+    };
+
+    function renderLibPack() {
+        document.querySelectorAll('#lib-pack-panel .goal-opt').forEach(function(b) {
+            b.classList.toggle('active', b.textContent.trim() === libLevel);
+        });
+        const list = document.getElementById('lib-pack-list');
+        list.innerHTML = '';
+        const ids = state.libraryKnownIds.filter(function(id) {
+            const w = wordById(id);
+            return w && w.level === libLevel;
+        });
+        if (ids.length === 0) {
+            list.innerHTML = '<p style="color:var(--text-sub);font-size:14px;">이 레벨에 저장된 카드가 없습니다.</p>';
+            return;
+        }
+        ids.forEach(function(id) {
+            const w = wordById(id);
+            if (!w) return;
+            list.appendChild(renderLibraryFullCard(w, 'pack'));
+        });
+    }
+
+    function getVaultIds() {
+        if (vaultSub === 'history') return state.skimSeenIds.slice();
+        if (vaultSub === 'bookmark') return state.bookmarks.slice();
+        if (vaultSub === 'difficult') return state.difficultIds.slice();
+        if (vaultSub === 'stuck') {
+            return Object.keys(state.unknownCounts).filter(function(id) {
+                return state.unknownCounts[id] >= 7;
+            }).map(Number);
+        }
+        return [];
+    }
+
+    function renderLibVault() {
+        const list = document.getElementById('lib-vault-list');
+        list.innerHTML = '';
+        const ids = getVaultIds();
+        if (ids.length === 0) {
+            list.innerHTML = '<p style="color:var(--text-sub);font-size:14px;">항목이 없습니다.</p>';
+            return;
+        }
+        ids.forEach(function(id) {
+            const w = wordById(id);
+            if (!w) return;
+            list.appendChild(renderLibraryFullCard(w, 'vault'));
+        });
+    }
+
+    function renderLibraryFullCard(word, ctx) {
+        const wrap = document.createElement('div');
+        wrap.className = 'learn-card-mini';
+        const hideWord = vaultMask === 'word';
+        const hideMean = vaultMask === 'meaning';
+        const bm = state.bookmarks.includes(word.id);
+        const exHtml = applyRuby(word.example_jp, word.alt_spellings);
+        wrap.innerHTML =
+            '<div class="c-img" style="height:120px;"><span>' + EMOJIS[word.id % 8] + '</span>' +
+            '<div class="c-lvl">' + word.level + '</div>' +
+            '<div class="c-bookmark' + (bm ? ' active' : '') + '" data-lbid="' + word.id + '" style="cursor:pointer;">🔖</div></div>' +
+            '<div class="c-body" style="text-align:center;">' +
+            '<div class="c-furi">' + (hideWord ? '••••' : escapeHtml(word.furigana)) + '</div>' +
+            '<div class="c-kanji" style="font-size:32px;">' + (hideWord ? '████' : escapeHtml(word.kanji)) +
+            ' <span data-spk="' + escapeAttr(word.kanji) + '" style="font-size:18px;cursor:pointer;">🔊</span></div>' +
+            '<div class="c-meaning">' + (hideMean ? '••••••' : escapeHtml(word.meaning)) + '</div>' +
+            '<div class="c-pos">[' + escapeHtml(word.pos) + ']</div>' +
+            '<div class="c-ex" style="text-align:left;">' +
+            '<p style="font-family:\'Noto Sans JP\';">' + (hideWord ? '…' : exHtml) +
+            ' <span data-spk="' + escapeAttr(word.example_jp) + '" style="cursor:pointer;">🔊</span></p>' +
+            '<p style="font-size:12px;color:var(--text-sub);">' + escapeHtml(word.example_kr) + '</p></div>' +
+            '<div style="margin-top:10px;display:flex;justify-content:flex-end;">' +
+            '<button type="button" class="btn-primary" style="padding:6px 12px;width:auto;font-size:11px;background:#eee;color:#333;box-shadow:none;" data-tipid="' + word.id + '">팁 💡</button></div>' +
+            '<p style="font-size:11px;color:var(--text-sub);margin-top:10px;">최초 노출: 스키밍 기록 기준 · 복습은 플래시카드 통계 참고</p></div>';
+        wrap.querySelector('[data-lbid]').addEventListener('click', function() {
+            toggleBm(word.id, this);
+            save();
+            if (libMainTab === 'vault') renderLibVault();
+        });
+        wrap.querySelectorAll('[data-spk]').forEach(function(el) {
+            el.addEventListener('click', function() { speak(el.getAttribute('data-spk')); });
+        });
+        wrap.querySelector('[data-tipid]').addEventListener('click', function() { openTip(word.id); });
+        return wrap;
+    }
+
+    window.toggleBm = function(id, el) {
+        const i = state.bookmarks.indexOf(id);
+        if (i >= 0) {
+            state.bookmarks.splice(i, 1);
+            el.classList.remove('active');
+        } else {
+            state.bookmarks.push(id);
+            el.classList.add('active');
+        }
+        save();
+    };
+
+    window.showScreen = function(id) {
+        document.querySelectorAll('.screen').forEach(function(s) {
+            s.classList.remove('active');
+            s.classList.add('hidden');
+        });
+        const el = document.getElementById('screen-' + id);
+        if (el) {
+            el.classList.remove('hidden');
+            el.classList.add('active');
+        }
+        if (id === 'home') renderHome();
+        if (id === 'library') setLibMainTab(libMainTab);
+    };
 
     init();
+})();
 </script>
 </body>
 </html>
