@@ -23,21 +23,28 @@
         .screen.hidden{opacity:0;pointer-events:none;}
 
         /* —— 홈: 상단 캘린더(한 달만) —— */
-        .home-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:100px; display:flex; flex-direction:column; }
+        .home-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:100px; display:flex; flex-direction:column; gap:10px; }
         .cal-compact {
-            margin: 0 14px 12px; background:var(--card-bg); border-radius:var(--radius); padding:14px;
-            border:1px solid var(--border); box-shadow:var(--shadow); position:relative; padding-bottom:40px;
+            margin: 0 14px 12px; background:var(--card-bg); border-radius:var(--radius); padding:10px 10px 34px;
+            border:1px solid var(--border); box-shadow:0 8px 22px rgba(0,0,0,.07); position:relative; z-index:1; flex-shrink:0;
         }
         .cal-compact .cal-more {
             position:absolute; right:12px; bottom:10px; font-size:12px; font-weight:800; color:var(--primary);
             background:rgba(255,107,107,.1); padding:6px 12px; border-radius:10px; border:1px solid rgba(255,107,107,.25);
         }
         .cal-day { cursor:pointer; }
-        .cal-day-detail-pop {
-            margin:8px 14px 0; padding:12px 14px; background:#fff; border-radius:14px; border:1px solid var(--border);
-            font-size:13px; font-weight:700; display:none; box-shadow:var(--shadow);
+        .cal-day-toast {
+            position:fixed; left:12px; right:12px; bottom:92px; z-index:4500; max-width:430px; margin:0 auto;
+            padding:14px 40px 14px 16px; background:#fff; border-radius:16px; border:1px solid var(--border);
+            font-size:13px; font-weight:700; line-height:1.45; box-shadow:0 14px 40px rgba(0,0,0,.2);
+            display:none; pointer-events:auto;
         }
-        .cal-day-detail-pop.show { display:block; }
+        .cal-day-toast.show { display:block; animation:calToastIn .22s ease; }
+        @keyframes calToastIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        .cal-toast-x {
+            position:absolute; top:8px; right:10px; width:32px; height:32px; border-radius:50%; border:none;
+            background:#f0f0f2; font-size:18px; line-height:32px; font-weight:700; color:#333; cursor:pointer;
+        }
         .cal-compact h3 { font-size:15px; text-align:center; margin-bottom:10px; font-weight:900; }
         .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; text-align:center; }
         .cal-day-head { font-size:10px; color:var(--text-sub); font-weight:700; }
@@ -59,7 +66,7 @@
         .cal-modal-close { position:absolute; top:12px; left:12px; width:36px; height:36px; border-radius:50%; background:#222; color:#fff; font-size:18px; line-height:36px; text-align:center; }
 
         /* —— 중앙 모듈 —— */
-        .home-center { flex:1; display:flex; flex-direction:column; justify-content:center; min-height:220px; padding:6px 14px 8px; gap:12px; }
+        .home-center { flex:0 0 auto; display:flex; flex-direction:column; justify-content:flex-start; min-height:0; padding:4px 14px 4px; gap:12px; position:relative; z-index:2; }
         .mod-card {
             background:var(--card-bg); border-radius:20px; padding:14px 14px 12px; border:1px solid var(--border);
             box-shadow:var(--shadow); text-align:center;
@@ -96,10 +103,10 @@
         .word-card.sw-left .swipe-overlay.left { opacity:1; background:rgba(78,205,196,.22); color:#00695c; }
         .word-card.sw-right .swipe-overlay.right { opacity:1; background:rgba(255,107,107,.18); color:#b71c1c; }
         .c-img {
-            width:100%; height:140px; min-height:120px; background:linear-gradient(145deg,#eef6ff,#fff5f5);
+            width:100%; min-height:200px; max-height:min(44vh, 340px); background:linear-gradient(145deg,#eef6ff,#fff5f5);
             display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; overflow:hidden;
         }
-        .c-img img { width:100%; height:100%; object-fit:cover; }
+        .c-img img { width:100%; height:100%; max-height:min(44vh, 340px); object-fit:contain; object-position:center; }
         .c-img .ph { font-size:64px; }
         .c-bookmark { position:absolute; top:10px; right:10px; font-size:21px; z-index:2; cursor:pointer; }
         .c-body { padding:14px 14px 16px; flex-shrink:0; text-align:center; }
@@ -140,8 +147,8 @@
             background:#fff; border-radius:16px; overflow:hidden; border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,.06);
             font-size:11px; text-align:center; cursor:pointer;
         }
-        .wg-cell .im { height:72px; background:#f0f0f2; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-        .wg-cell .im img { width:100%; height:100%; object-fit:cover; }
+        .wg-cell .im { height:88px; background:#e8eaef; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .wg-cell .im img { width:100%; height:100%; object-fit:contain; object-position:center; }
         .wg-cell .tx { padding:8px 6px; }
         .wg-cell .kj { font-family:'Noto Sans JP'; font-weight:900; font-size:13px; line-height:1.2; word-break:break-all; }
         .wg-cell .ps { font-size:9px; color:var(--text-sub); margin-top:2px; }
@@ -154,8 +161,8 @@
             background:#fff; border-radius:14px; overflow:hidden; border:1px solid var(--border);
             box-shadow:0 4px 10px rgba(0,0,0,.06); font-size:11px; text-align:center;
         }
-        .pack-cell .im { height:70px; background:#f0f0f2; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-        .pack-cell .im img { width:100%; height:100%; object-fit:cover; }
+        .pack-cell .im { height:88px; background:#e8eaef; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .pack-cell .im img { width:100%; height:100%; object-fit:contain; object-position:center; }
         .pack-cell .tx { padding:8px 6px; }
         .pack-cell .kj { font-family:'Noto Sans JP'; font-weight:900; font-size:12px; }
         .pack-cell .mn { font-size:10px; color:var(--text-sub); margin-top:4px; line-height:1.3; }
@@ -171,8 +178,8 @@
             display:flex; align-items:stretch; gap:10px; background:#fff; border-radius:14px; border:1px solid var(--border);
             margin-bottom:8px; padding:8px 10px; min-height:64px; box-shadow:0 2px 8px rgba(0,0,0,.05);
         }
-        .vault-row .vr-img { width:56px; height:56px; border-radius:10px; overflow:hidden; flex-shrink:0; background:#f0f0f2; display:flex; align-items:center; justify-content:center; font-size:26px; }
-        .vault-row .vr-img img { width:100%; height:100%; object-fit:cover; }
+        .vault-row .vr-img { width:56px; height:56px; border-radius:10px; overflow:hidden; flex-shrink:0; background:#e8eaef; display:flex; align-items:center; justify-content:center; font-size:26px; }
+        .vault-row .vr-img img { width:100%; height:100%; object-fit:contain; object-position:center; }
         .vault-row .vr-mid { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; text-align:left; }
         .vault-row .vr-mid .k { font-family:'Noto Sans JP'; font-weight:900; font-size:15px; }
         .vault-row .vr-mid .m { font-size:12px; color:var(--text-main); margin-top:2px; line-height:1.35; }
@@ -275,7 +282,9 @@
         <p style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">시험 일자</p>
         <input type="date" id="goal-date" onchange="checkGoalReady()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:12px;">
         <p style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">하루 학습 단어 수</p>
-        <input type="number" id="goal-count" min="1" placeholder="예: 20" oninput="checkGoalReady()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:18px;">
+        <input type="number" id="goal-count" min="1" placeholder="예: 20" oninput="checkGoalReady()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:12px;">
+        <p style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">단어 카드 이미지 (선택, Pixabay 무료 키)</p>
+        <input type="password" id="pixabay-key" autocomplete="off" placeholder="pixabay.com/api 에서 발급" onblur="savePixabayKey()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:18px;font-size:13px;">
         <p id="goal-hint" style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:10px;display:none;"></p>
         <button type="button" id="btn-goal-complete" class="btn-primary" disabled onclick="completeGoal()">설정 완료 및 시작</button>
     </div>
@@ -290,10 +299,10 @@
             </div>
         </div>
         <div class="home-scroll">
-            <div id="cal-compact-wrap" class="cal-compact"></div>
-            <div id="cal-day-detail" class="cal-day-detail-pop"></div>
             <div class="home-center" id="home-modules"></div>
+            <div id="cal-compact-wrap" class="cal-compact"></div>
         </div>
+        <div id="cal-day-toast" class="cal-day-toast" role="status" aria-live="polite"></div>
         <div class="home-fab">
             <button type="button" onclick="navigateLibrary()">📚</button>
             <button type="button" onclick="showScreen('analysis')">📊</button>
@@ -457,7 +466,8 @@
         startTime: null,
         skimRightByDate:{}, skimLeftByDate:{},
         totalSkimMs:0, skimCardsShown:0, skimOpenDates:{},
-        totalFcMs:0, fcCardsDone:0, fcOpenDates:{}
+        totalFcMs:0, fcCardsDone:0, fcOpenDates:{},
+        imgPipelineVer:2
     };
     let skimSessionStart = 0;
     let wgFilter = 'all';
@@ -479,6 +489,10 @@
                 if(o[k]!==undefined && k!=='db') state[k]=o[k];
             });
             if(!state.imgCache) state.imgCache = {};
+            if(!state.imgPipelineVer || state.imgPipelineVer < 2){
+                state.imgCache = {};
+                state.imgPipelineVer = 2;
+            }
         } catch(e){ console.warn(e); }
     }
     function save(){
@@ -491,7 +505,8 @@
             dayKey:state.dayKey, fcDoneDate:state.fcDoneDate, quizDoneDate:state.quizDoneDate, imgCache:state.imgCache,
             skimRightByDate:state.skimRightByDate, skimLeftByDate:state.skimLeftByDate,
             totalSkimMs:state.totalSkimMs, skimCardsShown:state.skimCardsShown, skimOpenDates:state.skimOpenDates,
-            totalFcMs:state.totalFcMs, fcCardsDone:state.fcCardsDone, fcOpenDates:state.fcOpenDates
+            totalFcMs:state.totalFcMs, fcCardsDone:state.fcCardsDone, fcOpenDates:state.fcOpenDates,
+            imgPipelineVer:state.imgPipelineVer
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     }
@@ -583,8 +598,42 @@
         return (ii && (ii.thumburl || ii.url)) || null;
     }
 
+    function loremFlickrAnimeUrl(w){
+        return 'https://loremflickr.com/480/270/anime,illustration,cartoon/all?lock='+(w.id % 100000);
+    }
+    async function fetchPixabayAnime(w){
+        var key = localStorage.getItem('pixabay_api_key');
+        if(!key) return null;
+        var q = '';
+        if(w.meaning_en){
+            var en = String(w.meaning_en).split(/[,;]/)[0].trim();
+            if(en.length>=2 && !/[\u3130-\u318F\uAC00-\uD7A3]/.test(en)) q = en;
+        }
+        if(!q){
+            q = (w.kanji || w.furigana || '').trim();
+            if(!q) q = 'japanese study';
+        }
+        q = q+' anime illustration manga cartoon';
+        var url = 'https://pixabay.com/api/?key='+encodeURIComponent(key)+'&q='+encodeURIComponent(q)+'&image_type=illustration&safesearch=true&per_page=3';
+        var r = await fetch(url);
+        var j = await r.json();
+        if(j.hits && j.hits[0] && j.hits[0].webformatURL) return j.hits[0].webformatURL;
+        return null;
+    }
     async function loadWordImageUrl(w){
         if(state.imgCache[w.id]) return state.imgCache[w.id];
+        var realism = state.theme === 'realism';
+        if(!realism){
+            try {
+                var pb = await Promise.race([
+                    fetchPixabayAnime(w),
+                    new Promise(function(_,rej){ setTimeout(function(){ rej(); }, 4200); })
+                ]);
+                if(pb){ state.imgCache[w.id]=pb; save(); return pb; }
+            } catch(e){}
+            var animeFallback = loremFlickrAnimeUrl(w);
+            state.imgCache[w.id]=animeFallback; save(); return animeFallback;
+        }
         var queries = imageSearchQueries(w);
         var tries = queries.slice(0, 8);
         for(var i=0;i<tries.length;i++){
@@ -596,13 +645,27 @@
                 if(thumb){ state.imgCache[w.id]=thumb; save(); return thumb; }
             } catch(e){}
         }
-        return null;
+        try {
+            var pb2 = await Promise.race([
+                fetchPixabayAnime(w),
+                new Promise(function(_,rej){ setTimeout(function(){ rej(); }, 4200); })
+            ]);
+            if(pb2){ state.imgCache[w.id]=pb2; save(); return pb2; }
+        } catch(e){}
+        var lf = loremFlickrAnimeUrl(w);
+        state.imgCache[w.id]=lf; save(); return lf;
     }
 
     function setImgPlaceholder(el, w){
         el.innerHTML = '<span class="ph">'+EMOJIS[w.id%8]+'</span>';
         loadWordImageUrl(w).then(function(u){
-            if(u) el.innerHTML = '<img src="'+u+'" alt="">';
+            if(!u) return;
+            var img = document.createElement('img');
+            img.src = u;
+            img.alt = '';
+            img.onerror = function(){ this.onerror=null; this.src=loremFlickrAnimeUrl(w); };
+            el.innerHTML = '';
+            el.appendChild(img);
         });
     }
 
@@ -815,6 +878,14 @@
         showScreen('report');
     }
 
+    window.savePixabayKey = function(){
+        var inp = document.getElementById('pixabay-key');
+        if(!inp) return;
+        localStorage.setItem('pixabay_api_key', inp.value.trim());
+        state.imgCache = {};
+        state.imgPipelineVer = 2;
+        save();
+    };
     window.showGoalSetting = function(from){
         state.goalSettingsMode = !!from;
         document.getElementById('goal-title').textContent = from ? '설정 ⚙️' : '목표 설정하기 🎯';
@@ -822,6 +893,8 @@
         document.querySelectorAll('[data-g="target"]').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-v')===state.targetLvl); });
         document.getElementById('goal-date').value = state.examDate||'';
         document.getElementById('goal-count').value = state.dailyGoal||'';
+        var pk = document.getElementById('pixabay-key');
+        if(pk) pk.value = localStorage.getItem('pixabay_api_key')||'';
         checkGoalReady();
         showScreen('goal');
     };
@@ -907,7 +980,8 @@
             '<button type="button" class="btn-go" onclick="openQuizScreen()">바로 시작</button></div>';
 
         renderCalendarCompact();
-        document.getElementById('cal-day-detail').classList.remove('show');
+        var toast = document.getElementById('cal-day-toast');
+        if(toast){ toast.classList.remove('show'); toast.innerHTML = ''; }
     };
 
     window.startSkimmingFromGate = function(){
@@ -1010,10 +1084,19 @@
         var dg = state.dailyGoal||20;
         var r = state.skimRightByDate[ds]||0;
         var l = state.skimLeftByDate[ds]||0;
-        var pop = document.getElementById('cal-day-detail');
-        pop.innerHTML = '<strong>'+ds+'</strong><br>학습할게요(목표) <b>'+r+' / '+dg+'</b> · 알고있어요 스와이프 '+l+'회';
+        var pop = document.getElementById('cal-day-toast');
+        if(!pop) return;
+        clearTimeout(window._calToastTimer);
+        pop.innerHTML = '<button type="button" class="cal-toast-x" onclick="closeCalDayToast()" aria-label="닫기">×</button>'+
+            '<strong>'+escapeHtml(ds)+'</strong><br>학습할게요(목표) <b>'+r+' / '+dg+'</b> · 알고있어요 스와이프 '+l+'회';
         pop.classList.add('show');
+        window._calToastTimer = setTimeout(closeCalDayToast, 6500);
     }
+    window.closeCalDayToast = function(){
+        var pop = document.getElementById('cal-day-toast');
+        if(pop){ pop.classList.remove('show'); pop.innerHTML = ''; }
+        clearTimeout(window._calToastTimer);
+    };
 
     window.openCalModal = function(){
         document.getElementById('cal-modal-body').innerHTML = '';
@@ -1436,6 +1519,7 @@
         document.getElementById('quiz-feedback').style.color = ok ? 'var(--ok)' : 'var(--bad)';
     };
     window.showScreen = function(id){
+        if(id!=='home') closeCalDayToast();
         document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); s.classList.add('hidden'); });
         var el = document.getElementById('screen-'+id);
         if(el){ el.classList.remove('hidden'); el.classList.add('active'); }
