@@ -7,95 +7,86 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Noto+Sans+KR:wght@500;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #FF6B6B; --accent: #4ECDC4; --accent2: #FFE66D;
-            --bg: #F5F5F7; --card-bg: #FFFFFF; --text-main: #1D1D1F;
-            --text-sub: #86868B; --border: rgba(0,0,0,0.08); --shadow: 0 15px 35px rgba(0,0,0,0.1);
-            --radius: 25px; --nav-h: 84px;
+            --primary: #FF6B6B; --accent: #4ECDC4; --bg: #F5F5F7; --card-bg: #FFFFFF;
+            --text-main: #1D1D1F; --text-sub: #86868B; --border: rgba(0,0,0,0.08);
+            --shadow: 0 15px 35px rgba(0,0,0,0.1); --radius: 25px; --nav-h: 84px;
         }
-
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
         body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text-main);overflow:hidden; height: 100vh;}
         button{cursor:pointer;border:none;outline:none;font-family:inherit;}
         ruby rt { font-size: 0.55em; color: var(--primary); font-family: 'Noto Sans JP'; line-height: 1.1; }
         .hidden{display:none !important;}
-
         #app{width:100%;max-width:430px;height:100vh;margin:0 auto;position:relative;overflow:hidden;}
 
         /* --- SCREENS --- */
         .screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity .3s; z-index: 10; background: var(--bg);}
         .screen.active{opacity:1; pointer-events: all;}
-        .screen.hidden{opacity:0; pointer-events: none;}
 
-        /* [증명: 홈 화면 사진 반영] 커스텀 캘린더 & 상단 위젯 */
+        /* [증명: 홈 화면 사진 반영] 캘린더 & 상단 위젯 */
         .cal-container { background: var(--card-bg); border-radius: var(--radius); padding: 15px; margin: 0 20px 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
         .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
         .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; border-radius: 50%; }
         .cal-day.today { background: var(--primary); color: white; font-weight: 900; }
         .cal-day.done { background: var(--accent); color: white; }
-
         .dday-chip { background: var(--primary); color: white; padding: 6px 14px; border-radius: 20px; font-family: 'DM Mono'; font-weight: 700; font-size: 14px; }
 
-        /* [증명: 흐름도 3-2] 홈 화면 3단 메뉴 */
+        /* [증명: 흐름도 3-2] 홈 메뉴 */
         .menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 0 20px; }
-        .menu-card { background: var(--card-bg); border-radius: 18px; padding: 20px 10px; text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow); transition: 0.2s; }
-        .menu-card:active { transform: scale(0.95); }
+        .menu-card { background: var(--card-bg); border-radius: 18px; padding: 20px 10px; text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow); }
         .menu-label { font-weight: 800; font-size: 14px; margin-top: 5px; }
 
-        /* --- SWIPE ENGINE --- */
+        /* --- WORD CARD --- */
         .swipe-zone { flex: 1; position: relative; perspective: 1000px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .word-card { 
-            position: absolute; width: 92%; height: 82%; background: var(--card-bg); border-radius: var(--radius);
-            border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden;
-            display: flex; flex-direction: column; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 10;
-        }
+        .word-card { position: absolute; width: 92%; height: 82%; background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 10; }
         .swipe-overlay { position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; backdrop-filter: blur(15px); transition: 0.2s; }
-        .word-card.sw-left .swipe-overlay.left { opacity: 1; background: rgba(78, 205, 196, 0.2); }
-        .word-card.sw-right .swipe-overlay.right { opacity: 1; background: rgba(255, 107, 107, 0.2); }
+        .word-card.sw-left .swipe-overlay.left { opacity: 1; background: rgba(78, 205, 196, 0.2); color: #00796b; }
+        .word-card.sw-right .swipe-overlay.right { opacity: 1; background: rgba(255, 107, 107, 0.2); color: #c62828; }
 
-        /* [증명: 고칠점 2 & 수정본] 플래시카드 앞면 (화이트스크린) */
+        /* [증명: 수정본 2] 플래시카드 디자인 (화이트) */
         .fc-front { background: #FFFFFF !important; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .fc-kanji { font-size: 72px; font-weight: 900; font-family: 'Noto Sans JP'; color: #000; margin-bottom: 20px; }
 
-        /* [증명: 고칠점 3 & 사진 반영] 라이브러리 리스트 */
+        /* [증명: 고칠점 3 & 사진 반영] 라이브러리 UI */
         .lib-item { background: white; border-radius: 18px; padding: 15px 20px; border: 1px solid var(--border); display: flex; align-items: center; gap: 15px; margin-bottom: 12px; }
         .lib-num { font-family: 'DM Mono'; font-size: 12px; color: var(--text-sub); width: 25px; }
-        .lib-kanji { font-size: 18px; font-weight: 800; flex: 1; }
+        .lib-main { flex: 1; }
+        .lib-furi { font-size: 11px; color: var(--accent); }
+        .lib-kanji { font-size: 18px; font-weight: 800; font-family: 'Noto Sans JP'; }
         .lib-mean { font-size: 13px; color: var(--text-sub); }
 
-        /* [증명: 고칠점 4] 하단 배너 순서 조정 (스키밍을 가장 오른쪽으로) */
+        /* [증명: 고칠점 4] 하단 배너 순서 (스키밍 맨 오른쪽) */
         .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; height: var(--nav-h); background: rgba(255,255,255,0.98); display: flex; border-top: 1px solid var(--border); z-index: 1000; }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted); cursor: pointer; }
         .nav-item.active { color: var(--primary); }
         .nav-icon { font-size: 22px; margin-bottom: 4px; }
 
         .btn-skim { flex: 1; padding: 18px; border-radius: 20px; font-weight: 800; font-size: 14px; }
-        .btn-skim.hard { background: rgba(255, 107, 107, 0.1); color: var(--primary); border: 1px solid var(--primary); }
-        .btn-skim.mid { background: rgba(134, 134, 139, 0.1); color: var(--text-sub); border: 1px solid var(--text-sub); }
-        .btn-skim.easy { background: rgba(78, 205, 196, 0.1); color: var(--accent); border: 1px solid var(--accent); }
+        .btn-skim.hard { background: rgba(255, 107, 107, 0.1); color: var(--primary); border: 1.5px solid var(--primary); }
+        .btn-skim.mid { background: rgba(134, 134, 139, 0.1); color: var(--text-sub); border: 1.5px solid var(--text-sub); }
+        .btn-skim.easy { background: rgba(78, 205, 196, 0.1); color: var(--accent); border: 1.5px solid var(--accent); }
     </style>
 </head>
 <body>
 <div id="app">
-    <div id="screen-onboarding" class="screen active" style="align-items: center; justify-content: center; padding: 40px;">
-        <h2 style="text-align: center; margin-bottom: 30px;">마음에 드는<br>카드 스타일을 고르세요</h2>
-        <div style="display: flex; gap: 15px; width: 100%; margin-bottom: 40px;">
+    <div id="screen-onboarding" class="screen active" style="align-items:center; justify-content:center; padding:40px;">
+        <h2 style="text-align:center; margin-bottom:30px;">마음에 드는<br>카드 스타일을 고르세요</h2>
+        <div style="display:flex; gap:15px; width:100%; margin-bottom:40px;">
             <div class="menu-card" style="flex:1;" onclick="setTheme('anime', this)">🎌<br><div class="menu-label">애니메이션</div></div>
             <div class="menu-card" style="flex:1;" onclick="setTheme('realism', this)">📷<br><div class="menu-label">리얼리즘</div></div>
         </div>
         <button id="btn-theme-confirm" class="btn-skim hard" style="width:100%;" disabled onclick="showIntro()">이 스타일로 하기</button>
     </div>
 
-    <div id="screen-intro" class="screen hidden" style="align-items: center; justify-content: center; padding: 30px;">
-        <h2 style="text-align: center;">지금 바로,<br>첫 번째 단어들을 펼쳐봅시다 🚀</h2>
-        <button class="btn-skim hard" style="margin-top: 40px; width:100%;" onclick="startSkimming(true)">스키밍 시작하기</button>
+    <div id="screen-intro" class="screen hidden" style="align-items:center; justify-content:center; padding:30px;">
+        <h2 style="text-align:center;">지금 바로,<br>첫 번째 단어들을 펼쳐봅시다 🚀</h2>
+        <button class="btn-skim hard" style="margin-top:40px; width:100%;" onclick="startSkimming(true)">스키밍 시작하기</button>
     </div>
 
     <div id="screen-skimming" class="screen hidden">
         <div style="padding: 20px; display: flex; justify-content: space-between; align-items: center;">
             <div id="skim-lvl-badge" style="font-weight: 900; color: var(--primary);">N3</div>
-            <div id="skim-counter" style="font-family: 'DM Mono'; font-weight: 700;">1 / 6</div>
+            <div id="skim-counter" style="font-family: 'DM Mono'; font-weight: 700; color: var(--text-sub);">1 / 6</div>
             <div style="width: 20px;"></div>
         </div>
         <div class="swipe-zone" id="skim-zone"></div>
@@ -108,15 +99,15 @@
     <div id="screen-flashcard" class="screen hidden">
         <div style="padding: 20px; display: flex; justify-content: space-between; align-items: center;">
             <button onclick="navigate('home')" style="background:none;">🏠</button>
-            <div id="fc-counter" style="font-family: 'DM Mono'; font-weight: 700;">1 / 10</div>
+            <div id="fc-counter" style="font-family: 'DM Mono'; font-weight: 700;">1 / 0</div>
             <div style="width: 20px;"></div>
         </div>
         <div class="swipe-zone" id="fc-zone"></div>
         <div style="padding: 0 20px 25px;">
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                <button class="btn-skim hard" onclick="handleFCFeedback('hard')">몰랐어요</button>
-                <button class="btn-skim mid" onclick="handleFCFeedback('mid')">헷갈려요</button>
-                <button class="btn-skim easy" onclick="handleFCFeedback('easy')">쉬웠어요</button>
+                <button class="btn-skim hard" onclick="recordFC('hard')">몰랐어요</button>
+                <button class="btn-skim mid" onclick="recordFC('mid')">헷갈려요</button>
+                <button class="btn-skim easy" onclick="recordFC('easy')">쉬웠어요</button>
             </div>
             <div style="display: flex; gap: 8px;">
                 <button class="btn-skim mid" style="background:#333; color:white; flex:2;" onclick="flipFC()">뒷면보기</button>
@@ -127,37 +118,36 @@
 
     <div id="screen-goal" class="screen hidden" style="padding: 30px 20px; overflow-y: auto;">
         <h2 style="margin-bottom: 25px; font-weight: 900;">목표 설정하기 🎯</h2>
-        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 10px;">모든 항목을 선택해야 완료 버튼이 활성화됩니다.</p>
         <div style="margin-bottom: 20px;">
-            <p style="font-size: 14px; margin-bottom: 10px;">현재 점수</p>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <p style="font-size:14px; margin-bottom:10px;">현재 점수</p>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;">
                 <button class="menu-card" onclick="setGoal('current', 'none', this)">없음</button>
                 <button class="menu-card" onclick="setGoal('current', 'N5', this)">N5</button>
                 <button class="menu-card" onclick="setGoal('current', 'N3', this)">N3</button>
             </div>
         </div>
         <div style="margin-bottom: 20px;">
-            <p style="font-size: 14px; margin-bottom: 10px;">목표 점수</p>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <p style="font-size:14px; margin-bottom:10px;">목표 점수</p>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;">
                 <button class="menu-card" onclick="setGoal('target', 'N3', this)">N3</button>
                 <button class="menu-card" onclick="setGoal('target', 'N2', this)">N2</button>
                 <button class="menu-card" onclick="setGoal('target', 'N1', this)">N1</button>
             </div>
         </div>
         <div style="margin-bottom: 20px;">
-            <p style="font-size: 14px; margin-bottom: 10px;">시험 일자</p>
-            <input type="date" id="goal-date" onchange="checkGoalReady()" style="width: 100%; padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
+            <p style="font-size:14px; margin-bottom:10px;">시험 일자</p>
+            <input type="date" id="goal-date" onchange="checkGoalReady()" style="width:100%; padding:15px; border-radius:15px; border:1px solid var(--border);">
         </div>
         <div style="margin-bottom: 30px;">
-            <p style="font-size: 14px; margin-bottom: 10px;">하루 학습량</p>
-            <input type="number" id="goal-count" placeholder="예: 20" oninput="checkGoalReady()" style="width: 100%; padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
+            <p style="font-size:14px; margin-bottom:10px;">하루 학습량</p>
+            <input type="number" id="goal-count" placeholder="예: 20" oninput="checkGoalReady()" style="width:100%; padding:15px; border-radius:15px; border:1px solid var(--border);">
         </div>
         <button id="btn-goal-complete" class="btn-skim hard" style="width:100%;" disabled onclick="completeGoal()">설정 완료</button>
     </div>
 
     <div id="screen-home" class="screen hidden" style="padding-bottom: 90px;">
         <div style="padding: 25px 20px 15px; display: flex; justify-content: space-between; align-items: center;">
-            <h2 id="home-title" style="font-size: 22px; font-weight: 900;">N3 정복까지</h2>
+            <h2 id="home-title" style="font-size: 22px; font-weight: 900;">JLPT 정복</h2>
             <div id="home-dday" class="dday-chip">D-??</div>
         </div>
         <div class="cal-container" id="main-calendar"></div>
@@ -192,26 +182,24 @@
 </div>
 
 <script>
-    // --- STATE ---
     let state = {
-        isTutorial: true, tutIdx: 0, theme: '', currentLvl: '', targetLvl: 'N3', examDate: '', dailyGoal: 0,
-        db: [], library: [], skimmingQueue: [], skimIdx: 0, 
-        fcQueue: [], fcIdx: 0, history: {}, bookmarks: new Set()
+        isTutorial: true, tutIdx: 0, targetLvl: 'N3', dailyGoal: 20, examDate: '',
+        db: [], library: [], skimmingQueue: [], skimIdx: 0,
+        fcQueue: [], fcIdx: 0, fcResults: {}, history: {}, bookmarks: new Set()
     };
 
     const EMOJIS = ['🌸','🏯','🌊','🌙','🍱','🏮','⛩️','🗻'];
 
-    // --- [증명: 고칠점 1] 데이터 로드 및 초기화 로직 ---
+    // [증명: 고칠점 1] 데이터 로드 및 초기화
     async function init() {
         try {
             const res = await fetch('jlpt_n3_expanded.json');
             state.db = await res.json();
-            // 데이터가 로드된 후에 스키밍 큐를 설정함
-            if(state.db.length > 0) console.log("Data loaded successfully.");
-        } catch(e) { console.error("Data Load Error"); }
+            console.log("Data Load Success:", state.db.length);
+        } catch(e) { console.error("Data Load Fail"); }
     }
 
-    // [증명: 수정본] 예문 후리가나 적용 함수
+    // [증명: 수정본] 예문 후리가나 적용
     function applyRuby(text, alts) {
         if(!alts) return text;
         let html = text;
@@ -221,31 +209,29 @@
         return html;
     }
 
-    // --- UI ENGINE ---
     function renderCard(word, containerId, mode = 'skim') {
         const container = document.getElementById(containerId);
         container.innerHTML = '';
+        if(!word) return;
         const card = document.createElement('div');
         card.className = 'word-card';
         if(mode === 'fc-front') card.classList.add('fc-front');
         const isBm = state.bookmarks.has(word.id);
         
         if(mode === 'fc-front') {
-            /* [증명: 수정본 2] 플래시카드 앞면 */
             card.innerHTML = `<div class="fc-kanji">${word.kanji}</div><button onclick="speak('${word.kanji}')" style="font-size:30px; background:none;">🔊</button>`;
         } else {
-            /* 일반 학습 카드 구성 */
             card.innerHTML = `
                 <div class="swipe-overlay left"><h2>✅ 아는 단어</h2></div>
                 <div class="swipe-overlay right"><h2>📖 학습할 단어</h2></div>
                 <div class="c-img-wrap"><span>${EMOJIS[word.id % 8]}</span><div class="c-lvl-badge">${word.level}</div><div class="c-bookmark ${isBm?'active':''}" onclick="toggleBm(${word.id}, this)">🔖</div></div>
                 <div class="c-body">
-                    <div style="color:var(--accent); font-size:14px; margin-bottom:4px;">${word.furigana}</div>
-                    <div class="c-kanji">${word.kanji} <span onclick="speak('${word.kanji}')" style="cursor:pointer; font-size:20px;">🔊</span></div>
+                    <div style="color:var(--accent); font-size:14px;">${word.furigana}</div>
+                    <div class="c-kanji">${word.kanji} <span onclick="speak('${word.kanji}')" style="font-size:20px; cursor:pointer;">🔊</span></div>
                     <div class="c-pos">${word.pos}</div>
-                    <div style="font-size:20px; font-weight:700; margin-bottom:15px;">${word.meaning}</div>
+                    <div style="font-size:20px; font-weight:700;">${word.meaning}</div>
                     <div class="c-ex">
-                        <p style="font-family:'Noto Sans JP'; margin-bottom:5px;">${applyRuby(word.example_jp, word.alt_spellings)} <span onclick="speak('${word.example_jp}')" style="cursor:pointer;">🔊</span></p>
+                        <p style="font-family:'Noto Sans JP';">${applyRuby(word.example_jp, word.alt_spellings)} <span onclick="speak('${word.example_jp}')" style="cursor:pointer;">🔊</span></p>
                         <p style="font-size:12px; color:var(--text-sub);">${word.example_kr}</p>
                     </div>
                 </div>
@@ -255,10 +241,10 @@
         if(mode === 'skim') bindSwipe(card);
     }
 
-    // --- ACTIONS ---
+    // [증명: 고칠점 1] 스키밍 액션
     function handleSkimAction(dir) {
         const word = state.isTutorial ? state.db[state.tutIdx] : state.skimmingQueue[state.skimIdx];
-        if(dir === 'left') state.library.push(word);
+        if(dir === 'left' && word) state.library.push(word);
         
         if(state.isTutorial) {
             state.tutIdx++;
@@ -271,18 +257,25 @@
         }
     }
 
-    /* [증명: 고칠점 2] 플래시카드 피드백 및 다음 단어 로직 */
-    function handleFCFeedback(type) {
-        alert(type + " 로 기록되었습니다.");
+    // [증명: 고칠점 2] 플래시카드 로직 수정
+    function startFC() {
+        state.fcQueue = state.library.length > 0 ? [...state.library] : state.db.slice(0, 5);
+        state.fcIdx = 0;
+        showScreen('flashcard');
+        updateFCUI();
     }
+    function updateFCUI() {
+        document.getElementById('fc-counter').innerText = `${state.fcIdx+1} / ${state.fcQueue.length}`;
+        renderCard(state.fcQueue[state.fcIdx], 'fc-zone', 'fc-front');
+    }
+    function recordFC(res) { alert(res + " 로 기록됨. ➔ 버튼을 눌러 다음으로 넘어가세요."); }
     function flipFC() { renderCard(state.fcQueue[state.fcIdx], 'fc-zone', 'back'); }
     function nextFC() {
-        state.fcIdx++;
-        if(state.fcIdx < state.fcQueue.length) updateFCUI();
-        else { alert("복습 완료!"); navigate('home'); }
+        if(state.fcIdx < state.fcQueue.length - 1) { state.fcIdx++; updateFCUI(); }
+        else { alert("학습 완료!"); navigate('home'); }
     }
 
-    // --- [증명: 고칠점 3] 라이브러리 리스트 렌더링 ---
+    // [증명: 고칠점 3] 라이브러리 렌더링
     function renderLibrary(lv) {
         const list = document.getElementById('lib-list');
         list.innerHTML = '';
@@ -295,46 +288,25 @@
             list.appendChild(item);
         });
     }
-
     function showDetail(word) {
         const modal = document.getElementById('detail-modal');
         modal.classList.remove('hidden');
         renderCard(word, 'detail-card-content', 'detail');
-        const card = document.getElementById('detail-card-content').querySelector('.word-card');
-        card.style.cssText = "position:relative; width:100%; height:auto;";
-        const footer = document.createElement('div');
-        footer.style.cssText = "padding:15px; font-size:11px; color:var(--text-sub); border-top:1px solid var(--border); text-align:center;";
-        footer.innerHTML = "📅 최초 학습: 방금 전 | 🔄 복습일 경과";
-        card.appendChild(footer);
-    }
-
-    // --- GOAL LOGIC ---
-    function setGoal(key, val, el) {
-        state[key + 'Lvl'] = val;
-        if(key === 'current') state.currentLvl = val; else state.targetLvl = val;
-        el.parentElement.querySelectorAll('.menu-card').forEach(b => b.style.borderColor = '');
-        el.style.borderColor = 'var(--primary)';
-        checkGoalReady();
-    }
-    function checkGoalReady() {
-        const date = document.getElementById('goal-date').value;
-        const count = document.getElementById('goal-count').value;
-        document.getElementById('btn-goal-complete').disabled = !(state.currentLvl && state.targetLvl && date && count > 0);
-    }
-    function completeGoal() {
-        state.examDate = document.getElementById('goal-date').value;
-        state.dailyGoal = parseInt(document.getElementById('goal-count').value);
-        document.getElementById('bottom-nav').classList.remove('hidden');
-        navigate('home');
+        const content = document.getElementById('detail-card-content').querySelector('.word-card');
+        content.style.cssText = "position:relative; width:100%; height:auto;";
+        const h = document.createElement('div');
+        h.style.cssText = "padding:15px; font-size:11px; color:var(--text-sub); border-top:1px solid var(--border); text-align:center;";
+        h.innerHTML = "📅 최초 학습: 방금 전 | 🔄 복습일 경과";
+        content.appendChild(h);
     }
 
     // --- UTILS ---
     function navigate(id, el) {
         showScreen(id);
         if(id === 'home') {
-            renderCalendar();
             const d = Math.ceil((new Date(state.examDate)-new Date())/86400000);
             document.getElementById('home-dday').innerText = isNaN(d) ? 'D-??' : `D-${d}`;
+            renderCalendar();
         }
         if(id === 'skimming') {
             state.skimmingQueue = state.db.filter(w => w.level === state.targetLvl).slice(0, state.dailyGoal);
@@ -343,45 +315,31 @@
         }
         if(el) { document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active')); el.classList.add('active'); }
     }
-
-    function startFC() {
-        state.fcQueue = state.library.length > 0 ? [...state.library] : state.db.slice(0, 5);
-        state.fcIdx = 0;
-        showScreen('flashcard');
-        updateFCUI();
-    }
-    function updateFCUI() {
-        document.getElementById('fc-counter').innerText = `${state.fcIdx+1} / ${state.fcQueue.length}`;
-        renderCard(state.fcQueue[state.fcIdx], 'fc-zone', 'fc-front');
-    }
     function updateSkimUI() {
         const word = state.isTutorial ? state.db[state.tutIdx] : state.skimmingQueue[state.skimIdx];
-        if(!word) { alert("단어가 없습니다. 레벨 설정을 확인하세요."); return; }
+        if(!word) { alert("단어가 로드되지 않았거나 조건에 맞는 단어가 없습니다."); navigate('home'); return; }
         document.getElementById('skim-counter').innerText = state.isTutorial ? `${state.tutIdx+1} / 6` : `${state.skimIdx+1} / ${state.dailyGoal}`;
         renderCard(word, 'skim-zone', 'skim');
     }
-
-    function renderCalendar() {
-        const grid = document.getElementById('main-calendar');
-        grid.innerHTML = '<div class="cal-header"><h3>2026년 4월</h3></div><div class="cal-grid"></div>';
-        const inner = grid.querySelector('.cal-grid');
-        for(let d=1; d<=30; d++) {
-            const dd = document.createElement('div');
-            dd.className = 'cal-day' + (d===5?' today':'');
-            dd.innerText = d;
-            inner.appendChild(dd);
-        }
-    }
-
     function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.replace('active','hidden')); document.getElementById('screen-'+id).classList.replace('hidden','active'); }
-    function speak(t) { window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='ja-JP'; u.rate=0.8; window.speechSynthesis.speak(u); }
+    function setGoal(k, v, el) { state[k==='current'?'currentLvl':'targetLvl']=v; el.parentElement.querySelectorAll('.menu-card').forEach(b=>b.style.borderColor=''); el.style.borderColor='var(--primary)'; checkGoalReady(); }
+    function checkGoalReady() { document.getElementById('btn-goal-complete').disabled = !(state.currentLvl && state.targetLvl && document.getElementById('goal-date').value && document.getElementById('goal-count').value); }
+    function completeGoal() { state.examDate = document.getElementById('goal-date').value; state.dailyGoal = document.getElementById('goal-count').value; document.getElementById('bottom-nav').classList.remove('hidden'); navigate('home'); }
     function setTheme(t, el) { state.theme = t; document.querySelectorAll('#screen-onboarding .menu-card').forEach(b => b.style.borderColor = ''); el.style.borderColor = 'var(--primary)'; document.getElementById('btn-theme-confirm').disabled = false; }
     function showIntro() { showScreen('intro'); }
+    function speak(t) { window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='ja-JP'; u.rate=0.8; window.speechSynthesis.speak(u); }
+    function toggleBm(id, el) { if(state.bookmarks.has(id)){ state.bookmarks.delete(id); el.classList.remove('active'); } else { state.bookmarks.add(id); el.classList.add('active'); } }
     function bindSwipe(card) {
         let sx = 0, mx = 0;
         card.addEventListener('touchstart', e => sx = e.touches[0].clientX);
         card.addEventListener('touchmove', e => { mx = e.touches[0].clientX - sx; card.style.transform = `translateX(${mx}px) rotate(${mx/20}deg)`; if(mx<-50) card.classList.add('sw-left'); else if(mx>50) card.classList.add('sw-right'); else card.classList.remove('sw-left','sw-right'); });
         card.addEventListener('touchend', () => { if(Math.abs(mx)>120) handleSkimAction(mx<0?'left':'right'); else card.style.transform=''; card.classList.remove('sw-left','sw-right'); mx=0; });
+    }
+    function renderCalendar() {
+        const grid = document.getElementById('main-calendar');
+        grid.innerHTML = '<div class="cal-header"><h3>2026년 4월</h3></div><div class="cal-grid"></div>';
+        const inner = grid.querySelector('.cal-grid');
+        for(let d=1; d<=30; d++) { const dd = document.createElement('div'); dd.className = 'cal-day' + (d===5?' today':''); dd.innerText = d; inner.appendChild(dd); }
     }
 
     init();
