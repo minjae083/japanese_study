@@ -7,18 +7,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Noto+Sans+KR:wght@500;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* [증명: 프롬프트 2] 글로벌 디자인 시스템 & 컬러 스킴 */
-            --primary: #FF6B6B; --accent: #4ECDC4; --accent2: #FFE66D;
-            --bg: #F5F5F7; --card-bg: #FFFFFF; --text-main: #1D1D1F;
-            --text-sub: #86868B; --border: rgba(0,0,0,0.08); --shadow: 0 15px 35px rgba(0,0,0,0.1);
-            --radius: 25px; /* [명세서 2] 카드 굴곡 25px */
+            /* [증명: 프롬프트 2] 글로벌 디자인 시스템 */
+            --primary: #FF6B6B; --accent: #4ECDC4; --bg: #F5F5F7;
+            --card-bg: #FFFFFF; --text-main: #1D1D1F; --text-sub: #86868B;
+            --border: rgba(0,0,0,0.08); --shadow: 0 15px 35px rgba(0,0,0,0.1);
+            --radius: 25px; /* [명세서 2] 카드 굴곡 */
             --nav-h: 84px;
         }
 
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
         body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text-main);overflow:hidden; height: 100vh;}
         button{cursor:pointer;border:none;outline:none;font-family:inherit;}
-        /* [증명: 수정본 6-3] 예문 후리가나(Ruby) 스타일 */
+        /* [증명: 수정본 6-3] 예문 후리가나 스타일 */
         ruby rt { font-size: 0.55em; color: var(--primary); font-family: 'Noto Sans JP'; line-height: 1; }
         .hidden{display:none !important;}
 
@@ -29,15 +29,15 @@
         .screen.active{opacity:1; pointer-events: all;}
         .screen.hidden{opacity:0; pointer-events: none;}
 
-        /* [증명: 흐름도 4] 커스텀 캘린더 (수직 스와이프) */
+        /* [증명: 흐름도 4] 수직 스와이프 캘린더 */
         .cal-container { flex: 1; overflow-y: auto; padding: 20px; scroll-snap-type: y mandatory; }
         .cal-month { scroll-snap-align: start; margin-bottom: 25px; background: var(--card-bg); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
-        .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 50%; border: 1.5px solid transparent; }
-        .cal-day.today { border-color: var(--primary); color: var(--primary); font-weight: 900; }
+        .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 50%; }
+        .cal-day.today { border: 2.5px solid var(--primary); color: var(--primary); font-weight: 900; }
         .cal-day.done { background: var(--accent); color: white; }
 
-        /* [증명: 프롬프트 3.3] 스와이프 엔진 & 블러 오버레이 */
+        /* [증명: 프롬프트 3.3] 스와이프 & 블러 효과 */
         .swipe-zone { flex: 1; position: relative; perspective: 1000px; display: flex; align-items: center; justify-content: center; }
         .word-card { 
             position: absolute; width: 92%; height: 82%; background: var(--card-bg); border-radius: var(--radius);
@@ -47,35 +47,25 @@
         }
         .swipe-overlay { 
             position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            opacity: 0; pointer-events: none; backdrop-filter: blur(15px); transition: opacity 0.2s; 
+            opacity: 0; pointer-events: none; backdrop-filter: blur(15px); transition: 0.2s; 
         }
-        /* [명세서 4,5] 왼쪽: 민트(아는단어), 오른쪽: 레드(학습할단어) */
         .word-card.sw-left .swipe-overlay.left { opacity: 1; background: rgba(78, 205, 196, 0.25); color: #00796b; }
         .word-card.sw-right .swipe-overlay.right { opacity: 1; background: rgba(255, 107, 107, 0.25); color: #c62828; }
 
-        /* [증명: 명세서 7,8 / 프롬프트 3.1] 카드 UI 구성 */
+        /* [증명: 명세서 7, 8] 카드 레이아웃 */
         .c-img { width: 100%; height: 180px; background: #eef; display: flex; align-items: center; justify-content: center; font-size: 80px; position: relative; }
-        .c-bookmark { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; filter: grayscale(1); transition: 0.2s; }
-        .c-bookmark.active { filter: grayscale(0); }
+        .c-bookmark { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; }
         .c-body { padding: 20px; flex: 1; display: flex; flex-direction: column; text-align: center; }
-        .c-furi { color: var(--accent); font-size: 14px; margin-bottom: 4px; }
-        .c-kanji { font-size: 46px; font-weight: 900; font-family: 'Noto Sans JP'; margin-bottom: 5px; }
-        .c-meaning { font-size: 20px; font-weight: 700; color: var(--text-main); }
-        .c-pos { font-size: 12px; color: var(--text-sub); margin-bottom: 12px; }
-        .c-ex { background: #f9f9f9; padding: 12px; border-radius: 15px; text-align: left; margin-top: auto; border-left: 5px solid var(--accent); }
-        .c-lvl { position: absolute; bottom: 15px; left: 15px; background: var(--primary); color: white; padding: 4px 12px; border-radius: 10px; font-size: 11px; font-weight: 900; }
+        .c-kanji { font-size: 44px; font-weight: 900; font-family: 'Noto Sans JP'; margin-bottom: 5px; }
+        .c-meaning { font-size: 22px; font-weight: 700; color: var(--text-main); }
+        .c-ex { background: #f9f9f9; padding: 15px; border-radius: 18px; text-align: left; margin-top: auto; border-left: 5px solid var(--accent); }
+        .c-lvl { position: absolute; bottom: 15px; left: 15px; background: var(--primary); color: white; padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: 900; }
         
-        /* [증명: 흐름도 2] 목표 설정 컴포넌트 */
+        /* [증명: 흐름도 2] 목표 설정 버튼 */
         .goal-opt { padding: 12px; border-radius: 12px; border: 1.5px solid var(--border); background: white; font-weight: 700; color: var(--text-sub); text-align: center; }
         .goal-opt.active { border-color: var(--primary); color: var(--primary); background: rgba(255,107,107,0.05); }
 
-        /* [증명: 수정본 6-1] 팁 모달 */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: 0.3s; }
-        .modal-overlay.open { opacity: 1; pointer-events: all; }
-        .modal-sheet { width: 100%; max-width: 430px; background: white; border-radius: 25px 25px 0 0; padding: 25px; transform: translateY(100%); transition: 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
-        .modal-overlay.open .modal-sheet { transform: translateY(0); }
-
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; height: var(--nav-h); background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); display: flex; border-top: 1px solid var(--border); z-index: 1000; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 430px; height: var(--nav-h); background: white; display: flex; border-top: 1px solid var(--border); z-index: 1000; }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--text-muted); cursor: pointer; }
         .nav-item.active { color: var(--primary); }
         .nav-icon { font-size: 22px; margin-bottom: 4px; }
@@ -104,7 +94,7 @@
             <h2 style="margin-top: 15px; font-family: 'Noto Sans JP';">作法</h2>
             <p style="color: var(--text-sub);">예의범절, 예절</p>
         </div>
-        <h2 style="text-align: center; line-height: 1.4;">지금 바로,<br>첫 번째 단어들을 펼쳐봅시다 🚀</h2>
+        <h2 style="text-align: center;">지금 바로,<br>첫 번째 단어들을 펼쳐봅시다 🚀</h2>
         <button class="btn-primary" style="margin-top: 40px;" onclick="startSkimming(true)">스키밍 시작하기</button>
     </div>
 
@@ -124,7 +114,7 @@
     <div id="screen-report" class="screen hidden" style="align-items: center; justify-content: center; padding: 30px; text-align: center;">
         <div style="font-size: 60px;">🏆</div>
         <h2 style="margin: 20px 0 10px;">학습 완료!</h2>
-        <p id="report-time" style="font-size: 24px; font-weight: 900; color: var(--accent); margin-bottom: 30px;">0분 45초</p>
+        <p id="report-time" style="font-size: 24px; font-weight: 900; color: var(--accent); margin-bottom: 30px;">0분 0초</p>
         <p style="color: var(--text-sub); line-height: 1.6; margin-bottom: 40px;">
             수천개의 단어, 빠르고 정확하게 외울 수 있습니다.<br>
             <strong>지금 목표를 설정하세요.</strong><br>
@@ -167,7 +157,7 @@
     <div id="screen-home" class="screen hidden" style="padding-bottom: 90px;">
         <div style="padding: 25px 20px 10px; display: flex; justify-content: space-between; align-items: center;">
             <h2 id="home-title" style="font-size: 22px; font-weight: 900;">N3 정복 프로젝트</h2>
-            <div id="home-dday" style="background: var(--primary); color: white; padding: 6px 16px; border-radius: 20px; font-family: 'DM Mono'; font-weight: 700; font-size: 14px;">D-??</div>
+            <div id="home-dday" style="background: var(--primary); color: white; padding: 6px 16px; border-radius: 20px; font-family: 'DM Mono'; font-weight: 700;">D-??</div>
         </div>
         <div class="cal-container" id="main-calendar"></div>
     </div>
@@ -208,34 +198,24 @@
 </div>
 
 <script>
-    // --- STATE MANAGEMENT ---
     let state = {
         phase: 'onboarding', isTutorial: true, tutIdx: 0,
         theme: '', currentLvl: '', targetLvl: '', examDate: '', dailyGoal: 0,
-        db: [], library: [], skimmingQueue: [], skimIdx: 0, 
-        history: {}, bookmarks: new Set(), startTime: null
+        db: [], library: [], skimmingQueue: [], skimIdx: 0, history: {}, bookmarks: new Set(), startTime: null
     };
 
     const EMOJIS = ['🌸','🏯','🌊','🌙','🍱','🏮','⛩️','🗻'];
 
-    // --- INITIALIZATION ---
     async function init() {
         try {
             const res = await fetch('jlpt_n3_expanded.json');
             state.db = await res.json();
-            const saved = localStorage.getItem('jlpt_pro_save');
-            if(saved) {
-                state = {...state, ...JSON.parse(saved)};
-                state.bookmarks = new Set(state.bookmarks);
-                if(state.phase === 'main') {
-                    showScreen('home');
-                    document.getElementById('bottom-nav').classList.remove('hidden');
-                }
-            }
-        } catch(e) { console.error("데이터 로드 실패"); }
+            // [중요] 기존 저장 데이터를 무시하고 처음부터 흐르게 하려면 아래를 주석 처리하거나 clear 하세요.
+            // localStorage.clear(); 
+        } catch(e) { console.error("Data load failed"); }
     }
 
-    // --- ONBOARDING & THEME ---
+    // --- ONBOARDING ---
     function setTheme(t, el) {
         state.theme = t;
         document.querySelectorAll('#screen-onboarding .goal-opt').forEach(b => b.classList.remove('active'));
@@ -256,7 +236,7 @@
         updateSkimUI();
     }
 
-    /* [증명: 수정본 6-3] 예문 후리가나 적용 로직 */
+    /* [증명: 수정본 6-3] 예문 후리가나 적용 */
     function applyRuby(text, alts) {
         if(!alts || !alts.length) return text;
         let html = text;
@@ -300,7 +280,6 @@
         bindSwipe(card);
     }
 
-    // --- SWIPE LOGIC ---
     function bindSwipe(card) {
         let startX = 0, moveX = 0;
         const start = (e) => { startX = e.type.includes('touch')?e.touches[0].clientX:e.clientX; card.style.transition = 'none'; };
@@ -345,19 +324,18 @@
         showScreen('report');
     }
 
-    // --- GOAL SETTING (FIXED ERROR) ---
+    // --- GOAL SETTING (BUG FIXED) ---
     function showGoalSetting() { showScreen('goal'); }
 
     function setGoal(key, val, el) {
         if(key === 'current') state.currentLvl = val;
         else if(key === 'target') state.targetLvl = val;
-        
         el.parentElement.querySelectorAll('.goal-opt').forEach(b => b.classList.remove('active'));
         el.classList.add('active');
         checkGoalReady();
     }
 
-    /* [수정본 오류 해결] 모든 항목 입력 시 버튼 활성화 로직 */
+    /* [수정본 오류 해결] 모든 항목 입력 시 버튼 활성화 */
     function checkGoalReady() {
         const date = document.getElementById('goal-date').value;
         const count = document.getElementById('goal-count').value;
@@ -374,7 +352,7 @@
         save();
     }
 
-    // --- [흐름도 4] CALENDAR (Vertical Scroll) ---
+    // --- CALENDAR ---
     function renderCalendar() {
         const container = document.getElementById('main-calendar');
         container.innerHTML = '';
@@ -399,7 +377,6 @@
         }
     }
 
-    /* [수정본 6-1] 팁 모달 콘텐츠 */
     function openTip(id) {
         const word = state.db.find(w => w.id === id);
         const content = document.getElementById('tip-content');
@@ -416,7 +393,6 @@
         document.getElementById('tip-modal').classList.add('open');
     }
 
-    // --- UTILS ---
     function navigate(id, el) {
         showScreen(id);
         if(id === 'home') {
@@ -427,7 +403,7 @@
         }
         if(id === 'skimming') startSkimming(false);
         if(id === 'library') renderLibrary(state.targetLvl);
-        if(id === 'goal') showGoalSetting(); // [흐름도 9] 설정에서 재수정 가능
+        if(id === 'goal') showGoalSetting(); 
         if(el) { document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active')); el.classList.add('active'); }
     }
 
