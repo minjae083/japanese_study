@@ -116,7 +116,10 @@
             display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; overflow:hidden;
         }
         .c-img img { width:100%; height:100%; max-height:min(32vh, 240px); object-fit:contain; object-position:center; }
-        .c-img .ph { font-size:64px; }
+        .c-img .ph-loading { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:20px; min-height:100px; text-align:center; }
+        .c-img .ph-loading span { font-size:12px; font-weight:800; color:var(--text-sub); line-height:1.4; max-width:220px; }
+        .c-img .ph-spinner { width:38px; height:38px; border-radius:50%; border:3px solid rgba(78,205,196,.2); border-top-color:var(--accent); animation:phspin .75s linear infinite; }
+        @keyframes phspin { to { transform:rotate(360deg); } }
         .c-bookmark { position:absolute; top:10px; right:10px; font-size:21px; z-index:2; cursor:pointer; }
         .c-body { padding:14px 14px 16px; flex-shrink:0; text-align:center; }
         .c-furi { font-size:14px; color:var(--accent); font-family:'Noto Sans JP'; font-weight:700; }
@@ -473,11 +476,10 @@
 <script>
 (function(){
     const STORAGE_KEY = 'jlpt_pro_save_v4';
-    const EMOJIS = ['🌸','🏯','🌊','🌙','🍱','🏮','⛩️','🗻'];
     /** Google AI Studio / Gemini API 키 (클라이언트에 노출됨 — 유출 시 콘솔에서 재발급 권장) */
     const GEMINI_API_KEY = 'AIzaSyDuA2d0M8tjg9O8RbGc54hTf7WjQ4gaaqo';
-    /** Gemini 네이티브 이미지 생성 (Nano Banana) — Imagen predict 아님 */
-    const GEMINI_IMAGE_MODELS = ['gemini-2.5-flash-image','gemini-3.1-flash-image-preview'];
+    /** 품질 우선: 3.1 프리뷰 → 2.5 플래시 */
+    const GEMINI_IMAGE_MODELS = ['gemini-3.1-flash-image-preview','gemini-2.5-flash-image'];
 
     let state = {
         phase:'onboarding', isTutorial:true, tutIdx:0, theme:'', currentLvl:'', targetLvl:'', examDate:'', dailyGoal:20,
@@ -490,7 +492,7 @@
         skimRightByDate:{}, skimLeftByDate:{},
         totalSkimMs:0, skimCardsShown:0, skimOpenDates:{},
         totalFcMs:0, fcCardsDone:0, fcOpenDates:{},
-        imgPipelineVer:9
+        imgPipelineVer:10
     };
     let skimSessionStart = 0;
     let wgFilter = 'all';
@@ -512,9 +514,9 @@
                 if(o[k]!==undefined && k!=='db') state[k]=o[k];
             });
             if(!state.imgCache) state.imgCache = {};
-            if(!state.imgPipelineVer || state.imgPipelineVer < 9){
+            if(!state.imgPipelineVer || state.imgPipelineVer < 10){
                 state.imgCache = {};
-                state.imgPipelineVer = 9;
+                state.imgPipelineVer = 10;
             }
         } catch(e){ console.warn(e); }
     }
@@ -628,28 +630,34 @@
         return s.length>80 ? s.slice(0,80) : s;
     }
     function buildGeminiImagePrompt(w){
-        var en = primaryEnglishMeaning(w);
+        var en = primaryEnglishMeaning(w) || 'the vocabulary concept';
         var kr = w.meaning ? String(w.meaning).split(/[,;]/)[0].trim() : '';
         var jpEx = w.example_jp ? String(w.example_jp).replace(/\s+/g,' ').trim() : '';
         var krEx = w.example_kr ? String(w.example_kr).trim() : '';
-        var scene = '';
-        if(jpEx){
-            scene = 'Main scene to illustrate (must match this): '+jpEx.slice(0,140)+'. ';
-        } else if(krEx){
-            scene = 'Main scene to illustrate: '+krEx.slice(0,100)+'. ';
-        }
         var realism = state.theme === 'realism';
+        var neg = 'Do NOT output: app icon, emoji, sticker, chibi mascot, isometric 3D miniature, clay toy, plain white background with one tiny object, corporate flat pictogram, stock collage. ';
         if(realism){
-            return (scene+'Photorealistic photo, natural light, shallow depth of field, no text, no watermark. '+
-                'Japanese word «'+(w.kanji||'')+'» ('+(w.furigana||'')+'). English: '+en+'. Korean: '+kr+'.').slice(0,900);
+            var rs = jpEx ? ('Illustrate this situation as a real photograph: '+jpEx.slice(0,130)+'. ') : (krEx ? ('Situation: '+krEx.slice(0,90)+'. ') : '');
+            return (rs+'Cinematic photorealistic editorial photo, natural light, depth of field, emotional storytelling, full frame. '+
+                'Word: '+(w.kanji||'')+' ('+(w.furigana||'')+'). English: '+en+'. Korean: '+kr+'. No text in image. '+neg).slice(0,950);
         }
-        return (scene+
-            'Create a single illustration in Studio Ghibli–inspired anime film style: hand-painted backgrounds, soft watercolor-like colors, '+
-            'warm diffused light, gentle expressive mood, cinematic wide or medium shot. '+
-            'The image must visually represent the meaning of vocabulary, not random decoration. '+
-            'Japanese: '+(w.kanji||'')+' ('+(w.furigana||'')+'). English meaning: '+en+'. Korean meaning: '+kr+'. '+
-            'Absolutely no text, letters, captions, or watermarks in the image.'
-        ).slice(0,900);
+        var sceneCore = '';
+        if(jpEx){
+            sceneCore = 'Turn this Japanese example sentence into ONE full illustrated scene (show characters, setting, action, mood): «'+jpEx.slice(0,150)+'». ';
+        } else if(krEx){
+            sceneCore = 'Illustrate this meaning as one narrative scene: '+krEx.slice(0,100)+'. ';
+        } else {
+            sceneCore = 'Illustrate the abstract meaning with a concrete visual metaphor: '+en+'. ';
+        }
+        return (sceneCore+
+            'Full illustration art like a high-budget Japanese anime film key visual or storyboard panel: wide or medium shot, rich detail, '+
+            'painterly anime background, expressive lighting, cohesive composition, emotional atmosphere matching the word. '+
+            'Style: theatrical 2D anime illustration with soft watercolor-like shading and film-like color grading; '+
+            'Ghibli-inspired pastoral or everyday drama mood when it fits (no need to copy any specific film). '+
+            neg+
+            'Vocabulary: '+(w.kanji||'')+' ('+(w.furigana||'')+'). English gloss: '+en+'. Korean gloss: '+kr+'. '+
+            'No readable text, letters, captions, logos, or watermarks in the picture.'
+        ).slice(0,950);
     }
     function dataUrlFromGenerateContent(j){
         if(!j || !j.candidates || !j.candidates.length) return null;
@@ -658,7 +666,10 @@
             try { console.warn('[Gemini Image] finishReason', c0.finishReason, c0); } catch(z){}
         }
         var parts = c0.content && c0.content.parts;
-        if(!parts) return null;
+        if(!parts){
+            try { console.warn('[Gemini Image] 응답에 parts 없음', j); } catch(z){}
+            return null;
+        }
         for(var i=0;i<parts.length;i++){
             var p = parts[i];
             var id = p.inlineData || p.inline_data;
@@ -667,27 +678,30 @@
                 return 'data:'+mime+';base64,'+id.data;
             }
         }
+        try { console.warn('[Gemini Image] 이미지 바이너리 없음, parts=', parts); } catch(z){}
         return null;
+    }
+    function geminiMakeBody(prompt, modalities, imageSize){
+        return {
+            contents: [ { role: 'user', parts: [ { text: prompt } ] } ],
+            generationConfig: {
+                responseModalities: modalities,
+                imageConfig: { aspectRatio: '4:3', imageSize: imageSize || '1K' }
+            }
+        };
     }
     async function geminiNativeImageDataUrl(w){
         if(!GEMINI_API_KEY) return null;
         var prompt = buildGeminiImagePrompt(w);
         if(prompt.length>950) prompt = prompt.slice(0,950);
-        var bodyBase = {
-            contents: [ { role: 'user', parts: [ { text: prompt } ] } ],
-            generationConfig: {
-                responseModalities: ['TEXT','IMAGE'],
-                imageConfig: { aspectRatio: '4:3', imageSize: '1K' }
-            }
-        };
         for(var mi=0; mi<GEMINI_IMAGE_MODELS.length; mi++){
             var model = GEMINI_IMAGE_MODELS[mi];
             var url = 'https://generativelanguage.googleapis.com/v1beta/models/'+model+
                 ':generateContent?key='+encodeURIComponent(GEMINI_API_KEY);
             var tryBodies = [
-                bodyBase,
-                { contents: bodyBase.contents, generationConfig: { responseModalities: ['IMAGE'] } },
-                { contents: bodyBase.contents, generationConfig: { responseModalities: ['TEXT','IMAGE'] } }
+                geminiMakeBody(prompt, ['TEXT','IMAGE'], '2K'),
+                geminiMakeBody(prompt, ['TEXT','IMAGE'], '1K'),
+                geminiMakeBody(prompt, ['IMAGE'], '1K')
             ];
             for(var bi=0; bi<tryBodies.length; bi++){
                 try {
@@ -698,7 +712,7 @@
                     });
                     var j = await res.json().catch(function(){ return null; });
                     if(!res.ok){
-                        try { console.warn('[Gemini Image]', model, res.status, j); } catch(z){}
+                        try { console.warn('[Gemini Image]', model, tryBodies[bi].generationConfig, res.status, j); } catch(z){}
                         continue;
                     }
                     var d = dataUrlFromGenerateContent(j);
@@ -727,13 +741,16 @@
     }
 
     function setImgPlaceholder(el, w){
-        el.innerHTML = '<span class="ph">'+EMOJIS[w.id%8]+'</span>';
+        el.innerHTML = '<div class="ph-loading"><div class="ph-spinner"></div><span>Gemini로 장면 일러스트 생성 중…</span></div>';
         loadWordImageUrl(w).then(function(u){
-            if(!u) return;
+            if(!u){
+                el.innerHTML = '<div class="ph-loading"><span>이미지 생성에 실패했습니다. F12 콘솔에서 [Gemini Image] 로그를 확인하세요.</span></div>';
+                return;
+            }
             var img = document.createElement('img');
             img.src = u;
             img.alt = '';
-            img.onerror = function(){ this.onerror=null; };
+            img.onerror = function(){ this.onerror=null; el.innerHTML = '<div class="ph-loading"><span>이미지 표시 오류</span></div>'; };
             el.innerHTML = '';
             el.appendChild(img);
         });
