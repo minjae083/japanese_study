@@ -476,7 +476,7 @@
 <script>
 (function(){
     const STORAGE_KEY = 'jlpt_pro_save_v4';
-    /** 단어 카드 장면 이미지: Pollinations.ai (키 불필요, 무료 구간은 요청 간격 제한 있음) */
+    /** 단어 카드 이미지: Wikimedia Commons 검색(의미 관련) → 실패 시 Picsum 시드(빠른 장식용) */
 
     let state = {
         phase:'onboarding', isTutorial:true, tutIdx:0, theme:'', currentLvl:'', targetLvl:'', examDate:'', dailyGoal:20,
@@ -489,7 +489,7 @@
         skimRightByDate:{}, skimLeftByDate:{},
         totalSkimMs:0, skimCardsShown:0, skimOpenDates:{},
         totalFcMs:0, fcCardsDone:0, fcOpenDates:{},
-        imgPipelineVer:15
+        imgPipelineVer:16
     };
     let skimSessionStart = 0;
     let wgFilter = 'all';
@@ -511,9 +511,9 @@
                 if(o[k]!==undefined && k!=='db') state[k]=o[k];
             });
             if(!state.imgCache) state.imgCache = {};
-            if(!state.imgPipelineVer || state.imgPipelineVer < 15){
+            if(!state.imgPipelineVer || state.imgPipelineVer < 16){
                 state.imgCache = {};
-                state.imgPipelineVer = 15;
+                state.imgPipelineVer = 16;
             }
         } catch(e){ console.warn(e); }
     }
@@ -578,28 +578,20 @@
         return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     }
 
-    /* 이미지: 애니/일러스트 검색 우선 → 일반 (Commons) */
-    function imageSearchQueries(w){
+    /** Wikimedia Commons 파일 검색용 쿼리(영문 위주 — 파일명·설명과 매칭 잘 됨) */
+    function commonsSearchQueries(w){
         var q = [];
+        var en = primaryEnglishMeaning(w);
+        if(en) q.push(en);
         if(w.meaning_en){
-            var en = String(w.meaning_en).split(/[,;]/)[0].trim();
-            if(en.length>2) q.push(en+' anime illustration');
-            if(en.length>2) q.push(en+' manga drawing');
+            var raw = String(w.meaning_en).split(/[,;]/)[0].trim();
+            if(raw.length>2 && raw !== en) q.push(raw);
         }
-        if(w.meaning){
-            var kr = String(w.meaning).split(/[,;]/)[0].trim();
-            if(kr.length>1) q.push(kr+' 애니');
-        }
-        if(w.kanji) q.push(w.kanji+' イラスト');
-        if(w.meaning_en){
-            var en2 = String(w.meaning_en).split(/[,;]/)[0].trim();
-            if(en2.length>2) q.push(en2);
-        }
-        if(w.meaning){ var kr2 = String(w.meaning).split(/[,;]/)[0].trim(); if(kr2.length>1) q.push(kr2); }
-        if(w.kanji) q.push(w.kanji);
-        if(w.furigana) q.push(w.furigana);
+        if(en && en.length < 30) q.push(en+' Japan');
+        if(w.kanji && w.kanji.length <= 4) q.push(w.kanji);
+        if(w.furigana && w.furigana.length < 20) q.push(w.furigana);
         var seen = {};
-        return q.filter(function(x){ if(!x||seen[x]) return false; seen[x]=true; return true; });
+        return q.filter(function(x){ if(!x||seen[x]) return false; seen[x]=true; return true; }).slice(0, 8);
     }
 
     async function fetchCommonsThumb(query){
@@ -620,6 +612,20 @@
         return (ii && (ii.thumburl || ii.url)) || null;
     }
 
+    /** 쿼리 여러 개를 3개씩 병렬로 시도해 첫 성공 URL만 사용(그리드에서도 빠르게) */
+    async function fetchCommonsImageForWord(w){
+        var qs = commonsSearchQueries(w);
+        for(var off=0; off<qs.length; off+=3){
+            var batch = qs.slice(off, off+3);
+            if(!batch.length) break;
+            var results = await Promise.all(batch.map(function(q){ return fetchCommonsThumb(q); }));
+            for(var i=0;i<results.length;i++){
+                if(results[i]) return results[i];
+            }
+        }
+        return null;
+    }
+
     function primaryEnglishMeaning(w){
         if(!w || !w.meaning_en) return '';
         var s = String(w.meaning_en).split(/[,;]/)[0].trim();
@@ -632,47 +638,43 @@
         for(var i=0;i<s.length;i++){ h = ((h<<5)-h)+s.charCodeAt(i)|0; }
         return Math.abs(h) % 2000000000;
     }
-    /** Pollinations용 짧은 영문 프롬프트(URL 길이·모델 안정성) */
-    function buildPollinationsPrompt(w){
-        var en = primaryEnglishMeaning(w) || 'concept';
-        var jpEx = w.example_jp ? String(w.example_jp).replace(/\s+/g,' ').trim().slice(0,100) : '';
-        var realism = state.theme === 'realism';
-        if(realism){
-            return ('Photorealistic editorial photo, natural light, depth of field, emotional scene. '+(jpEx?('Context: '+jpEx+'. '):'')+'Subject meaning: '+en+'. No text, no letters, no watermark.').slice(0,480);
-        }
-        return ('Anime film key visual, wide shot, detailed background, soft light, Japanese slice-of-life mood. '+(jpEx?('Scene from: '+jpEx+'. '):'')+'Theme: '+en+'. No text, no letters, no watermark.').slice(0,480);
-    }
-    function pollinationsImageUrl(w){
-        var prompt = buildPollinationsPrompt(w);
-        var seed = hashWordIdToSeed(w.id);
-        var q = 'width=896&height=672&model=flux&seed='+seed+'&enhance=true';
-        return 'https://image.pollinations.ai/prompt/'+encodeURIComponent(prompt)+'?'+q;
+    /** Commons 실패 시 — 시드 고정, CDN 빠름(단어와 무관한 사진일 수 있음) */
+    function fastFallbackImageUrl(w){
+        var seed = String(w.id).replace(/[^a-zA-Z0-9]/g,'');
+        if(seed.length < 4) seed = 'w'+hashWordIdToSeed(w.id);
+        return 'https://picsum.photos/seed/'+encodeURIComponent(seed.slice(0,48))+'/640/480';
     }
     async function loadWordImageUrl(w){
         if(state.imgCache[w.id]) return state.imgCache[w.id];
         try {
-            var pu = pollinationsImageUrl(w);
-            state.imgCache[w.id]=pu; save();
-            return pu;
+            var u = await fetchCommonsImageForWord(w);
+            if(!u) u = fastFallbackImageUrl(w);
+            state.imgCache[w.id]=u; save();
+            return u;
         } catch(e){
-            try { console.warn('[Pollinations]', e); } catch(z){}
+            try { console.warn('[word image]', e); } catch(z){}
         }
-        return null;
+        var fb = fastFallbackImageUrl(w);
+        state.imgCache[w.id]=fb; save();
+        return fb;
     }
 
     function setImgPlaceholder(el, w){
-        el.innerHTML = '<div class="ph-loading"><div class="ph-spinner"></div><span>장면 일러스트 불러오는 중…</span></div>';
+        el.innerHTML = '<div class="ph-loading"><div class="ph-spinner"></div><span>이미지 불러오는 중…</span></div>';
         loadWordImageUrl(w).then(function(u){
             if(!u){
-                el.innerHTML = '<div class="ph-loading"><span style="font-size:11px;line-height:1.45;">이미지 주소를 만들지 못했습니다.</span></div>';
+                el.innerHTML = '<div class="ph-loading"><span style="font-size:11px;line-height:1.45;">이미지를 준비하지 못했습니다.</span></div>';
                 return;
             }
             var img = document.createElement('img');
             img.src = u;
             img.alt = '';
+            img.loading = 'lazy';
             img.onerror = function(){
                 this.onerror=null;
-                el.innerHTML = '<div class="ph-loading"><span style="font-size:11px;line-height:1.45;">Pollinations에서 이미지를 불러오지 못했습니다. 무료 구간은 약 15초에 1장 제한이 있을 수 있으니 잠시 뒤 다시 시도해 보세요.</span></div>';
+                var fb = fastFallbackImageUrl(w);
+                state.imgCache[w.id]=fb; save();
+                this.src = fb;
             };
             el.innerHTML = '';
             el.appendChild(img);
