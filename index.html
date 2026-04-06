@@ -4,22 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>JLPT Swipe Master Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+JP:wght@500;700;900&family=Noto+Sans+KR:wght@500;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #E85D4C; --accent: #3EB8A8; --bg: #ECECF0;
-            --card-bg: #FFFFFF; --text-main: #141418; --text-sub: #6B6B76;
-            --border: rgba(15,15,20,0.08); --shadow: 0 12px 40px rgba(20,20,30,0.08);
-            --shadow-sm: 0 4px 20px rgba(20,20,30,0.06);
-            --radius: 20px; --radius-lg: 24px; --ok: #1d7a3d; --bad: #c41e1e; --mid: #5c5c66;
-            --font-ui: 'Plus Jakarta Sans', 'Noto Sans KR', system-ui, sans-serif;
-            --font-body: 'Noto Sans KR', var(--font-ui);
+            --bg: #F5F5F7;
+            --surface: #FFFFFF;
+            --text: #000000;
+            --text-muted: #8E8E93;
+            --text-soft: #AEAEB2;
+            --border: rgba(0,0,0,0.06);
+            --shadow-card: 0 4px 24px rgba(0,0,0,0.06);
+            --shadow-float: 0 8px 32px rgba(0,0,0,0.08);
+            --radius: 20px;
+            --radius-lg: 26px;
+            --radius-pill: 999px;
+            --fab: #0A84FF;
+            --green: #34C759;
+            --ok: #248a3d;
+            --bad: #c41e1e;
+            --mid: #636366;
+            --font-ui: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            --font-body: var(--font-ui);
+            --nav-h: 56px;
+            --card-bg: var(--surface);
+            --primary: #000000;
+            --accent: #34C759;
+            --text-main: var(--text);
+            --text-sub: var(--text-muted);
+            --shadow: var(--shadow-card);
+            --shadow-sm: 0 2px 14px rgba(0,0,0,0.05);
         }
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
         html{height:100%;height:-webkit-fill-available;}
-        body{font-family:var(--font-body);background:var(--bg);color:var(--text-main);overflow:hidden;height:100%;min-height:100vh;min-height:100dvh;-webkit-font-smoothing:antialiased;}
+        body{font-family:var(--font-body);background:var(--bg);color:var(--text);overflow:hidden;height:100%;min-height:100vh;min-height:100dvh;-webkit-font-smoothing:antialiased;letter-spacing:-0.02em;}
         button{cursor:pointer;border:none;outline:none;font-family:inherit;}
-        ruby rt { font-size: 0.55em; color: var(--accent); font-family: 'Noto Sans JP'; line-height: 1; }
+        ruby rt { font-size: 0.55em; color: var(--text-muted); font-family: 'Noto Sans JP', sans-serif; line-height: 1; }
         .hidden{display:none !important;}
         #app{width:100%;max-width:min(100%,480px);height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;margin:0 auto;position:relative;overflow:hidden;}
         .screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity .25s;z-index:10;background:var(--bg);min-height:0;max-height:100dvh;}
@@ -83,22 +103,11 @@
         .h-gauge > i { display:block; height:100%; background:linear-gradient(90deg,var(--accent),var(--primary)); width:0%; transition:width .35s ease; border-radius:99px; }
         .mod-status { font-size:12px; font-weight:800; margin-bottom:10px; color:var(--text-sub); }
         .mod-status.done { color:var(--ok); }
-        .mod-status.ing { color:#1565c0; }
+        .mod-status.ing { color: var(--text-muted); }
         .btn-go { width:100%; padding:14px; border-radius:16px; font-family:var(--font-ui); font-weight:800; font-size:14px; background:#12121a; color:#fff; min-height:48px; }
         .btn-go:disabled { opacity:.45; pointer-events:none; }
         .btn-sub { margin-top:8px; padding:10px; border-radius:12px; font-weight:800; font-size:13px; background:rgba(78,205,196,.15); color:#00695c; border:1px solid var(--accent); width:100%; }
         .btn-sub:disabled { opacity:.4; }
-
-        .home-head { padding:14px 16px 10px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-shrink:0; }
-        .jlpt-select { font-family:var(--font-ui); font-weight:800; font-size:16px; padding:8px 12px; border-radius:14px; border:1px solid var(--border); background:#fff; box-shadow:var(--shadow-sm); }
-        .home-fab { position:fixed; right:max(12px, env(safe-area-inset-right)); bottom:calc(14px + env(safe-area-inset-bottom,0)); z-index:900; display:flex; flex-direction:column; gap:10px; }
-        .home-fab button {
-            width:52px; height:52px; border-radius:16px; background:#fff; box-shadow:var(--shadow-sm);
-            border:1px solid var(--border); color:var(--text-main);
-            display:flex; align-items:center; justify-content:center;
-        }
-        .home-fab button svg { width:24px; height:24px; }
-        .home-fab button:active { transform:scale(0.96); }
 
         /* 스키밍: 그리드로 하단 버튼 고정, 가운데만 스크롤 */
         #screen-skimming.screen-skimming {
@@ -141,7 +150,7 @@
         .c-bookmark svg { width:20px; height:20px; }
         .c-bookmark.active { color:var(--primary); }
         .c-body { padding:14px 14px 16px; flex-shrink:0; text-align:center; }
-        .c-furi { font-size:14px; color:var(--accent); font-family:'Noto Sans JP'; font-weight:700; }
+        .c-furi { font-size:14px; color:var(--text-muted); font-family:'Noto Sans JP'; font-weight:700; }
         .c-kanji { font-size:34px; font-weight:900; font-family:'Noto Sans JP'; margin:4px 0; line-height:1.2; word-break:break-all; }
         .c-meaning { font-size:17px; font-weight:700; }
         .c-pos { font-size:11px; color:var(--text-sub); margin-top:4px; }
@@ -150,7 +159,7 @@
         }
         .tts-w:active, .tts-e:active { background:#e4e6ea; }
         .tts-w svg, .tts-e svg { width:18px; height:18px; }
-        .c-ex { background:#f6f7f9; padding:12px; border-radius:14px; text-align:left; margin-top:10px; border-left:3px solid var(--accent); font-size:13px; line-height:1.55; word-break:break-word; }
+        .c-ex { background:#f6f7f9; padding:12px; border-radius:14px; text-align:left; margin-top:10px; border-left:3px solid rgba(0,0,0,.12); font-size:13px; line-height:1.55; word-break:break-word; }
         .btn-tip {
             padding:8px 14px; border-radius:999px; font-size:11px; font-family:var(--font-ui); font-weight:700;
             background:linear-gradient(135deg,#f3f0ff,#ede9fe); color:#5b4d9a; border:1px solid rgba(91,77,154,.18);
@@ -296,6 +305,145 @@
         .stat-box { background:#f5f5f7; padding:12px; border-radius:14px; text-align:center; }
         .stat-box .v { font-family:'DM Mono',monospace; font-size:18px; font-weight:700; color:var(--primary); }
         .pill { display:inline-block; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:800; margin-bottom:6px; }
+
+        /* —— 상업용 UI: 하단 탭 + FAB —— */
+        .app-bottom-nav {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); z-index: 920;
+            width: 100%; max-width: min(100%, 480px); height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+            padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+            display: flex; align-items: flex-start; justify-content: space-around; gap: 4px;
+            background: rgba(255,255,255,.94); backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(0,0,0,.06); box-shadow: 0 -4px 24px rgba(0,0,0,.04);
+        }
+        .app-bottom-nav[hidden] { display: none !important; }
+        .bn-item {
+            flex: 1; max-width: 88px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            gap: 4px; padding: 6px 4px; background: none; border: none; color: var(--text-muted);
+            font-size: 10px; font-weight: 600; letter-spacing: -0.02em; min-height: 48px;
+        }
+        .bn-item .bn-ico { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; }
+        .bn-item .bn-ico svg { width: 24px; height: 24px; stroke-width: 1.75; }
+        .bn-item.active { color: var(--text); }
+        .bn-item:active { opacity: .85; }
+        .fab-tsu {
+            position: fixed; z-index: 930;
+            right: max(16px, env(safe-area-inset-right));
+            bottom: calc(var(--nav-h) + 14px + env(safe-area-inset-bottom, 0px));
+            width: 52px; height: 52px; border-radius: 50%; border: none;
+            background: var(--fab); color: #fff; font-size: 20px; font-weight: 800;
+            font-family: 'Noto Sans JP', sans-serif; line-height: 1;
+            box-shadow: 0 6px 20px rgba(10,132,255,.35); display: flex; align-items: center; justify-content: center;
+        }
+        .fab-tsu[hidden] { display: none !important; }
+        .fab-tsu:active { transform: scale(0.96); }
+
+        body.nav-visible #screen-home .home-scroll,
+        body.nav-visible #screen-library.screen,
+        body.nav-visible #screen-analysis.screen {
+            padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+        }
+
+        /* 홈 헤더 */
+        .home-head-v2 {
+            padding: 12px 16px 8px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+            flex-shrink: 0;
+        }
+        .brand-jlpt { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; }
+        .jlpt-select {
+            font-family: var(--font-ui); font-weight: 700; font-size: 15px; padding: 6px 10px;
+            border-radius: 12px; border: 1px solid var(--border); background: var(--surface);
+            box-shadow: var(--shadow-sm); color: var(--text); margin-top: 2px; max-width: 120px;
+        }
+        .btn-goal-pill {
+            padding: 8px 14px; border-radius: 12px; font-size: 12px; font-weight: 600;
+            background: var(--surface); border: 1px solid rgba(0,0,0,.1); color: var(--text);
+            white-space: nowrap; box-shadow: var(--shadow-sm);
+        }
+        .btn-goal-pill:active { background: #f2f2f7; }
+        .home-meta-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+        .pill-dday {
+            background: var(--text); color: #fff; padding: 5px 11px; border-radius: var(--radius-pill);
+            font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700;
+        }
+        .meta-streak { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+
+        .cal-compact {
+            margin: 0 14px 12px; background: var(--surface); border-radius: var(--radius-lg); padding: 12px 12px 36px;
+            border: none; box-shadow: var(--shadow-card); position: relative; z-index: 1; flex-shrink: 0;
+        }
+        .cal-compact .cal-more {
+            position: absolute; right: 12px; bottom: 10px; font-size: 12px; font-weight: 700; color: var(--text-muted);
+            background: #f2f2f7; padding: 6px 12px; border-radius: 10px; border: none;
+        }
+        .cal-day.today {
+            border: none; color: #fff; font-weight: 800;
+            background: #000; box-shadow: 0 2px 8px rgba(0,0,0,.2);
+        }
+        .cal-day.today .ring { opacity: 0.35; }
+        .cal-day.today::after {
+            content: ''; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%);
+            width: 5px; height: 5px; border-radius: 50%; background: var(--green);
+        }
+        .cal-day .ring {
+            background: conic-gradient(var(--text) var(--p,0%), #e8e8ed var(--p,0%));
+        }
+
+        .mod-card {
+            background: var(--surface); border-radius: var(--radius-lg); padding: 18px 16px 16px; border: none;
+            box-shadow: var(--shadow-card); text-align: left;
+        }
+        .mod-card h3 { justify-content: flex-start; font-size: 17px; font-weight: 800; }
+        .mod-ico { color: var(--text); }
+        .mod-thumb-strip {
+            display: flex; gap: 10px; overflow-x: auto; padding: 4px 0 14px; margin: -4px 0 0;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none;
+        }
+        .mod-thumb-strip::-webkit-scrollbar { display: none; }
+        .mod-thumb { flex: 0 0 auto; width: 56px; text-align: center; }
+        .mod-thumb-im {
+            width: 56px; height: 72px; border-radius: 12px; background: #ececf0;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .mod-thumb-im img { width: 100%; height: 100%; object-fit: cover; }
+        .mod-thumb-kj { font-size: 10px; font-weight: 700; margin-top: 4px; font-family: 'Noto Sans JP', sans-serif; display: block; color: var(--text-muted); }
+        .mod-thumb-empty { font-size: 12px; color: var(--text-muted); padding: 12px 0; text-align: center; width: 100%; }
+        .h-gauge > i { background: linear-gradient(90deg, #3a3a3c, #000); }
+        .btn-go { border-radius: 14px; min-height: 50px; font-size: 15px; font-weight: 800; background: #000; box-shadow: 0 6px 20px rgba(0,0,0,.15); }
+        .btn-sub { background: #f2f2f7; color: #222; border: 1px solid var(--border); }
+
+        .skim-subbar { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 6px; padding: 8px 10px; min-height: 56px; }
+        .skim-pills { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        .skim-pill {
+            display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: var(--radius-pill);
+            background: #f2f2f7; font-size: 12px; font-weight: 700; color: var(--text);
+            font-family: 'DM Mono', monospace;
+        }
+        .skim-pill-ok { background: rgba(52,199,89,.12); color: #1a7a32; }
+        .skim-pill-ico { display: flex; width: 16px; height: 16px; }
+        .skim-pill-ico svg { width: 16px; height: 16px; stroke-width: 2; }
+        .skim-lvl { text-align: center; font-size: 11px; font-weight: 800; color: var(--text-muted); margin-top: 2px; letter-spacing: .06em; }
+        .skim-counter-line { text-align: center; font-size: 11px; color: var(--text-muted); font-weight: 600; padding: 0 12px 4px; }
+
+        .btn-skim.know { background: #fff; color: #000; border: 1.5px solid rgba(0,0,0,.12); box-shadow: var(--shadow-sm); }
+        .btn-skim.learn { background: #000; color: #fff; border: 1.5px solid #000; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+        .word-card.sw-left .swipe-overlay.left {
+            background: rgba(0,0,0,.55); color: #fff; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .word-card.sw-right .swipe-overlay.right {
+            background: rgba(52,199,89,.2); color: #0d4d1f; backdrop-filter: blur(8px);
+        }
+        .swipe-overlay h2 { font-size: 18px; font-weight: 800; }
+        .swipe-overlay p { font-size: 13px; opacity: .9; margin-top: 6px; }
+
+        .goal-opt.active { border-color: #000; color: #000; background: #f2f2f7; }
+        .btn-primary { background: #000; box-shadow: 0 8px 28px rgba(0,0,0,.18); border-radius: 16px; }
+        .lib-tab.active { background: #000; border-color: #000; }
+        .wg-filter button.on { background: #000; border-color: #000; }
+        .fc-next-btn { background: #000 !important; color: #fff !important; }
+        .lib-screen-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 4px 4px 12px; gap: 12px; }
+        .lib-screen-head .lib-k { font-size: 12px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 2px; }
+        .lib-screen-head .lib-h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; }
+        .quiz-furi-btn.on { background: #000 !important; color: #fff !important; border-color: #000 !important; }
     </style>
 </head>
 <body>
@@ -321,14 +469,18 @@
     </div>
 
     <div id="screen-skimming" class="screen hidden screen-skimming">
-        <div class="subbar">
+        <div class="subbar skim-subbar">
             <button type="button" class="btn-icon-plain" onclick="goHomeFromSkim()" aria-label="뒤로"><span class="nav-back-ico"></span></button>
-            <div style="flex:1;text-align:center;">
-                <div id="skim-lvl-badge" style="font-weight:900;color:var(--primary);font-size:14px;">N3</div>
-                <div id="skim-counter" style="font-family:'DM Mono';font-size:12px;color:var(--text-sub);">1 / 6</div>
+            <div>
+                <div class="skim-pills">
+                    <span class="skim-pill"><span class="skim-pill-ico" id="skim-trash-ico"></span><span id="skim-left-n">0</span></span>
+                    <span class="skim-pill skim-pill-ok"><span class="skim-pill-ico" id="skim-check-ico"></span><span id="skim-progress-txt">0/6</span></span>
+                </div>
+                <div id="skim-lvl-badge" class="skim-lvl">N3</div>
             </div>
-            <div style="width:32px;"></div>
+            <div class="subbar-spacer" aria-hidden="true"></div>
         </div>
+        <div id="skim-counter" class="skim-counter-line">1 / 6</div>
         <div class="swipe-zone" id="skim-zone-wrap"><div id="skim-zone"></div></div>
         <div class="skim-btns">
             <button type="button" class="btn-skim know" onclick="handleAction('left')">알고 있어요</button>
@@ -373,23 +525,22 @@
 
     <!-- 홈: 캘린더 상단 → 중앙 모듈 -->
     <div id="screen-home" class="screen hidden">
-        <div class="home-head">
-            <select id="home-jlpt-select" class="jlpt-select" onchange="onJlptFilter(this.value)" title="표시 레벨"></select>
+        <div class="home-head-v2">
             <div>
-                <div id="home-dday" style="background:var(--primary);color:#fff;padding:5px 12px;border-radius:16px;font-family:'DM Mono';font-size:12px;font-weight:700;">D-??</div>
-                <p id="home-streak" style="font-size:11px;color:var(--text-sub);margin-top:4px;">🔥 <span id="streak-n">0</span>일</p>
+                <div class="brand-jlpt">JLPT</div>
+                <select id="home-jlpt-select" class="jlpt-select" onchange="onJlptFilter(this.value)" title="표시 레벨" aria-label="JLPT 레벨"></select>
+                <div class="home-meta-row">
+                    <span id="home-dday" class="pill-dday">D-??</span>
+                    <span id="home-streak" class="meta-streak">연속 <span id="streak-n">0</span>일</span>
+                </div>
             </div>
+            <button type="button" class="btn-goal-pill" onclick="showGoalSetting(true)">목표 설정</button>
         </div>
         <div class="home-scroll">
             <div class="home-center" id="home-modules"></div>
             <div id="cal-compact-wrap" class="cal-compact"></div>
         </div>
         <div id="cal-day-toast" class="cal-day-toast" role="status" aria-live="polite"></div>
-        <div class="home-fab">
-            <button type="button" onclick="navigateLibrary()" aria-label="라이브러리" class="fab-ic-btn" data-fab="0"></button>
-            <button type="button" onclick="showScreen('analysis')" aria-label="학습 분석" class="fab-ic-btn" data-fab="1"></button>
-            <button type="button" onclick="showGoalSetting(true)" aria-label="설정" class="fab-ic-btn" data-fab="2"></button>
-        </div>
     </div>
 
     <div id="cal-modal-bg" class="cal-modal-bg" onclick="if(event.target===this)closeCalModal()">
@@ -402,7 +553,7 @@
 
     <div id="screen-wordgrid" class="screen hidden word-grid-screen">
         <div class="subbar">
-            <button type="button" class="btn-icon-plain" onclick="showScreen('home');renderHome();" aria-label="뒤로"><span class="nav-back-ico"></span></button>
+            <button type="button" class="btn-icon-plain" onclick="showScreen('home');" aria-label="뒤로"><span class="nav-back-ico"></span></button>
             <h2 style="flex:1;text-align:center;font-size:16px;">오늘의 단어</h2>
             <div style="width:32px;"></div>
         </div>
@@ -450,10 +601,12 @@
     </div>
 
     <div id="screen-library" class="screen hidden" style="padding:14px;overflow-y:auto;padding-bottom:32px;">
-        <div class="subbar subbar-balanced" style="padding-left:0;">
-            <button type="button" class="btn-icon-plain" onclick="showScreen('home')" aria-label="뒤로"><span class="nav-back-ico"></span></button>
-            <h2 class="subbar-title">라이브러리</h2>
-            <div class="subbar-spacer" aria-hidden="true"></div>
+        <div class="lib-screen-head">
+            <div>
+                <span class="lib-k">단어팩 · 보관함</span>
+                <h2 class="lib-h2">라이브러리</h2>
+            </div>
+            <button type="button" class="btn-icon-plain" aria-label="검색" onclick="document.getElementById('lib-pack-list').scrollIntoView({behavior:'smooth',block:'start'})"><span class="nav-search-ico"></span></button>
         </div>
         <div class="lib-tabs">
             <button type="button" class="lib-tab active" id="tab-pack" onclick="setLibMainTab('pack')">단어팩</button>
@@ -482,10 +635,12 @@
     </div>
 
     <div id="screen-analysis" class="screen hidden" style="padding:14px;overflow-y:auto;padding-bottom:40px;">
-        <div class="subbar subbar-balanced" style="padding-left:0;">
-            <button type="button" class="btn-icon-plain" onclick="showScreen('home')" aria-label="뒤로"><span class="nav-back-ico"></span></button>
-            <h2 class="subbar-title">학습 분석</h2>
-            <div class="subbar-spacer" aria-hidden="true"></div>
+        <div class="lib-screen-head">
+            <div>
+                <span class="lib-k">학습 리포트</span>
+                <h2 class="lib-h2">분석</h2>
+            </div>
+            <button type="button" class="btn-icon-plain" aria-label="새로고침" onclick="renderAnalysis()"><span class="nav-refresh-ico"></span></button>
         </div>
         <p style="font-size:12px;color:var(--text-sub);margin:8px 0 4px;">누적 암기 (일별 · 최근 7일)</p>
         <svg id="analysis-chart" class="analysis-chart" viewBox="0 0 320 160" preserveAspectRatio="xMidYMid meet"></svg>
@@ -519,6 +674,14 @@
         </div>
     </div>
 
+    <nav class="app-bottom-nav" id="app-bottom-nav" aria-label="메인 메뉴" hidden>
+        <button type="button" class="bn-item active" data-nav="home" onclick="showScreen('home');"><span class="bn-ico bn-ico-home"></span><span>홈</span></button>
+        <button type="button" class="bn-item" data-nav="library" onclick="navigateLibrary();"><span class="bn-ico bn-ico-lib"></span><span>라이브러리</span></button>
+        <button type="button" class="bn-item" data-nav="analysis" onclick="showScreen('analysis');"><span class="bn-ico bn-ico-chart"></span><span>분석</span></button>
+        <button type="button" class="bn-item" data-nav="membership" onclick="alert('준비 중입니다.');"><span class="bn-ico bn-ico-card"></span><span>멤버십</span></button>
+    </nav>
+    <button type="button" class="fab-tsu" id="fab-tsu" hidden onclick="openWordView()" aria-label="오늘 단어 보기">ツ</button>
+
     <div class="modal-overlay" id="card-learn-modal" onclick="closeLearnCard(event)">
         <div class="modal-sheet" style="max-height:90vh;overflow-y:auto;" onclick="event.stopPropagation()">
             <div id="card-learn-inner"></div>
@@ -549,7 +712,14 @@
         layers: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 11.65-9.17 4.16a2 2 0 0 1-1.66 0L2 11.65"/><path d="m22 16.65-9.17 4.16a2 2 0 0 1-1.66 0L2 16.65"/></svg>',
         helpCircle: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>',
         barChart: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>',
-        settings: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>'
+        settings: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
+        home: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+        libBookmark: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>',
+        creditCard: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>',
+        search: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+        refreshCw: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>',
+        trash2: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>',
+        checkCircle: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 12 2 2 4-4"/></svg>'
     };
     const STORAGE_KEY = 'jlpt_pro_save_v4';
     /** 단어 카드 장면 이미지: Pollinations.ai (키 불필요, 무료 구간은 요청 간격 제한 있음) */
@@ -760,11 +930,16 @@
     function wireStaticIcons(){
         document.querySelectorAll('.nav-back-ico').forEach(function(el){ el.innerHTML = SVG.chevronLeft; });
         document.querySelectorAll('.nav-x-ico').forEach(function(el){ el.innerHTML = SVG.x; });
+        document.querySelectorAll('.nav-search-ico').forEach(function(el){ el.innerHTML = SVG.search; });
+        document.querySelectorAll('.nav-refresh-ico').forEach(function(el){ el.innerHTML = SVG.refreshCw; });
         document.querySelectorAll('.fc-vol-ico').forEach(function(el){ el.innerHTML = SVG.volume; });
         document.querySelectorAll('.fc-next-ico').forEach(function(el){ el.innerHTML = SVG.chevronRight; });
-        var fabBtns = document.querySelectorAll('.fab-ic-btn');
-        var fabSvg = [SVG.bookOpen, SVG.barChart, SVG.settings];
-        for(var fi=0; fi<fabBtns.length && fi<fabSvg.length; fi++) fabBtns[fi].innerHTML = fabSvg[fi];
+        var h = document.querySelector('.bn-ico-home'); if(h) h.innerHTML = SVG.home;
+        var lb = document.querySelector('.bn-ico-lib'); if(lb) lb.innerHTML = SVG.libBookmark;
+        var ch = document.querySelector('.bn-ico-chart'); if(ch) ch.innerHTML = SVG.barChart;
+        var cr = document.querySelector('.bn-ico-card'); if(cr) cr.innerHTML = SVG.creditCard;
+        var st = document.getElementById('skim-trash-ico'); if(st) st.innerHTML = SVG.trash2;
+        var sc = document.getElementById('skim-check-ico'); if(sc) sc.innerHTML = SVG.checkCircle;
     }
     function init(){
         wireStaticIcons();
@@ -779,8 +954,7 @@
             if(qi) qi.onkeydown = function(e){ if(e.key==='Enter') window.quizCheck(); };
             if(state.phase==='main'){
                 document.getElementById('screen-onboarding').classList.replace('active','hidden');
-                document.getElementById('screen-home').classList.replace('hidden','active');
-                renderHome();
+                showScreen('home');
             }
         }).catch(function(){ console.error('json'); });
     }
@@ -840,8 +1014,12 @@
         var dg = state.dailyGoal||20;
         var total = state.isTutorial ? 6 : state.skimmingQueue.length;
         var cur = state.isTutorial ? state.tutIdx+1 : state.skimIdx+1;
-        var rt = state.isTutorial ? (state.tutIdx+1)+'/6' : (rightToday()+'/'+dg+' 학습할게요 · 카드 '+cur+'/'+total);
-        document.getElementById('skim-counter').textContent = rt;
+        var t = todayStr();
+        var leftN = state.isTutorial ? 0 : (state.skimLeftByDate[t]||0);
+        var progTxt = state.isTutorial ? (state.tutIdx+'/'+6) : (rightToday()+'/'+dg);
+        document.getElementById('skim-counter').textContent = state.isTutorial ? (cur+' / 6') : ('카드 '+cur+' / '+total);
+        var ln = document.getElementById('skim-left-n'); if(ln) ln.textContent = String(leftN);
+        var pt = document.getElementById('skim-progress-txt'); if(pt) pt.textContent = progTxt;
         document.getElementById('skim-lvl-badge').textContent = word.level;
         renderCardShell(word,'skim-zone',false);
     }
@@ -967,7 +1145,7 @@
             startFlashcardSession(state.learnQueue.slice());
             return;
         }
-        showScreen('home'); renderHome();
+        showScreen('home');
     }
 
     function finishTutorial(){
@@ -1012,7 +1190,6 @@
         save();
         fillJlptSelect();
         showScreen('home');
-        renderHome();
     };
 
     function streakCount(){
@@ -1023,6 +1200,22 @@
             if(h>0) n++; else break;
         }
         return n;
+    }
+
+    function buildModThumbStrip(){
+        var ids = [];
+        state.todayLearnIds.slice(0,5).forEach(function(id){ ids.push(id); });
+        state.learnQueue.forEach(function(id){
+            if(ids.length < 5 && ids.indexOf(id) < 0) ids.push(id);
+        });
+        ids = ids.slice(0,5);
+        if(!ids.length) return '<div class="mod-thumb-strip"><div class="mod-thumb-empty">오늘 첫 카드를 열어보세요</div></div>';
+        var html = ids.map(function(id){
+            var w = wordById(id);
+            if(!w) return '';
+            return '<div class="mod-thumb"><div class="mod-thumb-im" id="mthumb-'+id+'"></div><span class="mod-thumb-kj">'+escapeHtml(w.kanji)+'</span></div>';
+        }).join('');
+        return '<div class="mod-thumb-strip">'+html+'</div>';
     }
 
     /* 홈 모듈 + 게이지 */
@@ -1050,6 +1243,7 @@
         mod.innerHTML =
             '<div class="mod-card">'+
             '<h3><span class="mod-ico" aria-hidden="true">'+SVG.zap+'</span>스키밍</h3>'+
+            buildModThumbStrip()+
             '<div class="h-gauge"><i style="width:'+skimPct+'%"></i></div>'+
             '<div class="mod-status '+(skimDone?'done':'ing')+'">'+(skimDone?'완료':'진행중')+' · 학습할게요 '+skimCnt+' / '+dg+'</div>'+
             '<button type="button" class="btn-go" '+(skimDone?'disabled':'')+' onclick="startSkimmingFromGate()">바로 시작</button>'+
@@ -1066,6 +1260,12 @@
             '<div class="h-gauge"><i style="width:'+quizPct+'%"></i></div>'+
             '<div class="mod-status '+(quizDone?'done':'ing')+'">'+(quizDone?'완료':'진행중')+'</div>'+
             '<button type="button" class="btn-go" onclick="openQuizScreen()">바로 시작</button></div>';
+
+        mod.querySelectorAll('.mod-thumb-im').forEach(function(el){
+            var id = el.id.replace('mthumb-','');
+            var w = wordById(id);
+            if(w) setImgPlaceholder(el, w);
+        });
 
         renderCalendarCompact();
         var toast = document.getElementById('cal-day-toast');
@@ -1231,7 +1431,7 @@
         renderFcFront();
     }
     window.exitFlashcard = function(){
-        if(confirm('중단할까요?')){ showScreen('home'); renderHome(); }
+        if(confirm('중단할까요?')){ showScreen('home'); }
     };
     window.speakFcWord = function(){
         var id = fcSession.queue[fcSession.index];
@@ -1377,16 +1577,15 @@
     };
     window.reviewFlashAgain = function(){
         var ids = fcSession.queue.slice();
-        if(!ids.length){ showScreen('home'); renderHome(); return; }
+        if(!ids.length){ showScreen('home'); return; }
         startFlashcardSession(ids);
     };
-    window.finishFcResult = function(){ showScreen('home'); renderHome(); };
+    window.finishFcResult = function(){ showScreen('home'); };
 
     window.completeQuizToday = function(){
         state.quizDoneDate = todayStr();
         save();
         showScreen('home');
-        renderHome();
     };
 
     window.navigateLibrary = function(){ showScreen('library'); setLibMainTab(libMainTab); };
@@ -1510,7 +1709,6 @@
         }
         save();
         showScreen('home');
-        renderHome();
     };
 
     function renderAnalysis(){
@@ -1535,13 +1733,13 @@
             var y = H-pad - (p.v/maxV)*(H-2*pad);
             pathD += (idx?' L':'M')+x+','+y;
         });
-        var inner = '<rect width="'+W+'" height="'+H+'" fill="#fafafa"/>';
-        inner += '<path d="'+pathD+'" fill="none" stroke="#4ECDC4" stroke-width="2.5"/>';
+        var inner = '<rect width="'+W+'" height="'+H+'" fill="#f5f5f7"/>';
+        inner += '<path d="'+pathD+'" fill="none" stroke="#000000" stroke-width="2.2"/>';
         pts.forEach(function(p,idx){
             var x = pad + (idx/Math.max(1,pts.length-1))*(W-2*pad);
             var y = H-pad - (p.v/maxV)*(H-2*pad);
-            inner += '<circle cx="'+x+'" cy="'+y+'" r="4" fill="#FF6B6B"/>';
-            inner += '<text x="'+x+'" y="'+(H-6)+'" font-size="9" text-anchor="middle" fill="#888">'+p.label+'</text>';
+            inner += '<circle cx="'+x+'" cy="'+y+'" r="3.5" fill="#000"/>';
+            inner += '<text x="'+x+'" y="'+(H-6)+'" font-size="9" text-anchor="middle" fill="#8E8E93">'+p.label+'</text>';
         });
         svg.innerHTML = inner;
 
@@ -1575,7 +1773,7 @@
         showScreen('quiz');
         quizNext();
     };
-    window.exitQuiz = function(){ showScreen('home'); renderHome(); };
+    window.exitQuiz = function(){ showScreen('home'); };
     window.toggleQuizFuri = function(){
         quizShowFuri = !quizShowFuri;
         document.getElementById('quiz-furi-btn').classList.toggle('on', quizShowFuri);
@@ -1612,6 +1810,16 @@
         document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); s.classList.add('hidden'); });
         var el = document.getElementById('screen-'+id);
         if(el){ el.classList.remove('hidden'); el.classList.add('active'); }
+        var navIds = ['home','library','analysis'];
+        var showNav = navIds.indexOf(id) >= 0;
+        var navEl = document.getElementById('app-bottom-nav');
+        var fabEl = document.getElementById('fab-tsu');
+        if(navEl) navEl.hidden = !showNav;
+        if(fabEl) fabEl.hidden = !showNav;
+        document.body.classList.toggle('nav-visible', showNav);
+        document.querySelectorAll('.bn-item').forEach(function(b){
+            b.classList.toggle('active', b.getAttribute('data-nav') === id);
+        });
         if(id==='home') renderHome();
         if(id==='library') setLibMainTab(libMainTab);
         if(id==='analysis') renderAnalysis();
