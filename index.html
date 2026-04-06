@@ -477,9 +477,12 @@
 (function(){
     const STORAGE_KEY = 'jlpt_pro_save_v4';
     /** Google AI Studio / Gemini API 키 (클라이언트에 노출됨 — 유출 시 콘솔에서 재발급 권장) */
-    const GEMINI_API_KEY = 'AIzaSyDuA2d0M8tjg9O8RbGc54hTf7WjQ4gaaqo';
+    const GEMINI_API_KEY = 'AIzaSyAedOCGyMwKF16fp65EKc_H0Qc-YlEqxxY';
     /** 품질 우선: 3.1 프리뷰 → 2.5 플래시 */
     const GEMINI_IMAGE_MODELS = ['gemini-3.1-flash-image-preview','gemini-2.5-flash-image'];
+    /** generateContent 403 시 폴백 (같은 키·Imagen 권한 필요) */
+    const GEMINI_IMAGEN_MODELS = ['imagen-4.0-fast-generate-001','imagen-4.0-generate-001'];
+    var lastVocabImageError = '';
 
     let state = {
         phase:'onboarding', isTutorial:true, tutIdx:0, theme:'', currentLvl:'', targetLvl:'', examDate:'', dailyGoal:20,
@@ -492,7 +495,7 @@
         skimRightByDate:{}, skimLeftByDate:{},
         totalSkimMs:0, skimCardsShown:0, skimOpenDates:{},
         totalFcMs:0, fcCardsDone:0, fcOpenDates:{},
-        imgPipelineVer:10
+        imgPipelineVer:11
     };
     let skimSessionStart = 0;
     let wgFilter = 'all';
@@ -514,9 +517,9 @@
                 if(o[k]!==undefined && k!=='db') state[k]=o[k];
             });
             if(!state.imgCache) state.imgCache = {};
-            if(!state.imgPipelineVer || state.imgPipelineVer < 10){
+            if(!state.imgPipelineVer || state.imgPipelineVer < 11){
                 state.imgCache = {};
-                state.imgPipelineVer = 10;
+                state.imgPipelineVer = 11;
             }
         } catch(e){ console.warn(e); }
     }
@@ -659,6 +662,50 @@
             'No readable text, letters, captions, logos, or watermarks in the picture.'
         ).slice(0,950);
     }
+    function geminiApiHeaders(){
+        return {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': GEMINI_API_KEY
+        };
+    }
+    function logApiError(ctx, status, j){
+        var msg = (j && j.error && j.error.message) ? j.error.message : JSON.stringify(j||'');
+        try { console.warn(ctx, 'HTTP', status, msg, j); } catch(z){}
+        if(status === 403){
+            lastVocabImageError = '403 Forbidden: '+msg;
+        }
+    }
+    function dataUrlFromImagenPredict(j){
+        if(!j || !j.predictions || !j.predictions.length) return null;
+        var p = j.predictions[0];
+        var b64 = p.bytesBase64Encoded || (p.image && p.image.imageBytes);
+        if(!b64) return null;
+        var mime = p.mimeType || 'image/png';
+        return 'data:'+mime+';base64,'+b64;
+    }
+    async function imagenPredictDataUrl(prompt){
+        for(var i=0;i<GEMINI_IMAGEN_MODELS.length;i++){
+            var model = GEMINI_IMAGEN_MODELS[i];
+            var url = 'https://generativelanguage.googleapis.com/v1beta/models/'+model+':predict';
+            var body = {
+                instances: [ { prompt: prompt } ],
+                parameters: { sampleCount: 1, aspectRatio: '4:3', personGeneration: 'allow_adult' }
+            };
+            try {
+                var res = await fetch(url, { method: 'POST', headers: geminiApiHeaders(), body: JSON.stringify(body) });
+                var j = await res.json().catch(function(){ return null; });
+                if(!res.ok){
+                    logApiError('[Imagen predict]', res.status, j);
+                    continue;
+                }
+                var d = dataUrlFromImagenPredict(j);
+                if(d) return d;
+            } catch(e){
+                try { console.warn('[Imagen predict]', model, e); } catch(z){}
+            }
+        }
+        return null;
+    }
     function dataUrlFromGenerateContent(j){
         if(!j || !j.candidates || !j.candidates.length) return null;
         var c0 = j.candidates[0];
@@ -692,12 +739,12 @@
     }
     async function geminiNativeImageDataUrl(w){
         if(!GEMINI_API_KEY) return null;
+        lastVocabImageError = '';
         var prompt = buildGeminiImagePrompt(w);
         if(prompt.length>950) prompt = prompt.slice(0,950);
         for(var mi=0; mi<GEMINI_IMAGE_MODELS.length; mi++){
             var model = GEMINI_IMAGE_MODELS[mi];
-            var url = 'https://generativelanguage.googleapis.com/v1beta/models/'+model+
-                ':generateContent?key='+encodeURIComponent(GEMINI_API_KEY);
+            var url = 'https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent';
             var tryBodies = [
                 geminiMakeBody(prompt, ['TEXT','IMAGE'], '2K'),
                 geminiMakeBody(prompt, ['TEXT','IMAGE'], '1K'),
@@ -707,12 +754,12 @@
                 try {
                     var res = await fetch(url, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: geminiApiHeaders(),
                         body: JSON.stringify(tryBodies[bi])
                     });
                     var j = await res.json().catch(function(){ return null; });
                     if(!res.ok){
-                        try { console.warn('[Gemini Image]', model, tryBodies[bi].generationConfig, res.status, j); } catch(z){}
+                        logApiError('[Gemini Image] '+model, res.status, j);
                         continue;
                     }
                     var d = dataUrlFromGenerateContent(j);
@@ -725,6 +772,8 @@
                 }
             }
         }
+        var im = await imagenPredictDataUrl(prompt);
+        if(im) return im;
         return null;
     }
     async function loadWordImageUrl(w){
@@ -744,7 +793,10 @@
         el.innerHTML = '<div class="ph-loading"><div class="ph-spinner"></div><span>Gemini로 장면 일러스트 생성 중…</span></div>';
         loadWordImageUrl(w).then(function(u){
             if(!u){
-                el.innerHTML = '<div class="ph-loading"><span>이미지 생성에 실패했습니다. F12 콘솔에서 [Gemini Image] 로그를 확인하세요.</span></div>';
+                var hint = lastVocabImageError && lastVocabImageError.indexOf('403')>=0
+                    ? '403: 이 브라우저 주소가 API 키에 허용되지 않았을 수 있습니다. Google Cloud Console → 사용자 인증 정보 → 해당 API 키 →「애플리케이션 제한」에서「HTTP 리퍼러」에 이 사이트 주소를 추가하거나, 테스트용으로「없음」을 선택하세요. AI Studio에서 Generative Language API·이미지 생성(결제) 여부도 확인하세요.'
+                    : '이미지 생성에 실패했습니다. F12 콘솔의 [Gemini Image] / [Imagen predict] 로그를 확인하세요.';
+                el.innerHTML = '<div class="ph-loading"><span style="font-size:11px;line-height:1.45;">'+hint+'</span></div>';
                 return;
             }
             var img = document.createElement('img');
