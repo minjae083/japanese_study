@@ -476,7 +476,8 @@
     const EMOJIS = ['🌸','🏯','🌊','🌙','🍱','🏮','⛩️','🗻'];
     /** Google AI Studio / Gemini API 키 (클라이언트에 노출됨 — 유출 시 콘솔에서 재발급 권장) */
     const GEMINI_API_KEY = 'AIzaSyDuA2d0M8tjg9O8RbGc54hTf7WjQ4gaaqo';
-    const GEMINI_IMAGEN_MODEL = 'imagen-4.0-fast-generate-001';
+    /** Gemini 네이티브 이미지 생성 (Nano Banana) — Imagen predict 아님 */
+    const GEMINI_IMAGE_MODELS = ['gemini-2.5-flash-image','gemini-3.1-flash-image-preview'];
 
     let state = {
         phase:'onboarding', isTutorial:true, tutIdx:0, theme:'', currentLvl:'', targetLvl:'', examDate:'', dailyGoal:20,
@@ -489,7 +490,7 @@
         skimRightByDate:{}, skimLeftByDate:{},
         totalSkimMs:0, skimCardsShown:0, skimOpenDates:{},
         totalFcMs:0, fcCardsDone:0, fcOpenDates:{},
-        imgPipelineVer:8
+        imgPipelineVer:9
     };
     let skimSessionStart = 0;
     let wgFilter = 'all';
@@ -511,9 +512,9 @@
                 if(o[k]!==undefined && k!=='db') state[k]=o[k];
             });
             if(!state.imgCache) state.imgCache = {};
-            if(!state.imgPipelineVer || state.imgPipelineVer < 8){
+            if(!state.imgPipelineVer || state.imgPipelineVer < 9){
                 state.imgCache = {};
-                state.imgPipelineVer = 8;
+                state.imgPipelineVer = 9;
             }
         } catch(e){ console.warn(e); }
     }
@@ -629,59 +630,93 @@
     function buildGeminiImagePrompt(w){
         var en = primaryEnglishMeaning(w);
         var kr = w.meaning ? String(w.meaning).split(/[,;]/)[0].trim() : '';
-        var ex = '';
-        if(w.example_kr) ex = ' Example scene: '+String(w.example_kr).slice(0,50)+'.';
-        else if(w.example_jp) ex = ' Example: '+String(w.example_jp).replace(/\s+/g,' ').slice(0,40)+'.';
+        var jpEx = w.example_jp ? String(w.example_jp).replace(/\s+/g,' ').trim() : '';
+        var krEx = w.example_kr ? String(w.example_kr).trim() : '';
+        var scene = '';
+        if(jpEx){
+            scene = 'Main scene to illustrate (must match this): '+jpEx.slice(0,140)+'. ';
+        } else if(krEx){
+            scene = 'Main scene to illustrate: '+krEx.slice(0,100)+'. ';
+        }
         var realism = state.theme === 'realism';
         if(realism){
-            return ('Photorealistic editorial photo, natural light, no text, no watermark. Depict the meaning of Japanese «'+
-                (w.kanji||'')+'» ('+(w.furigana||'')+'): '+en+'. Korean: '+kr+'.'+ex).slice(0,900);
+            return (scene+'Photorealistic photo, natural light, shallow depth of field, no text, no watermark. '+
+                'Japanese word «'+(w.kanji||'')+'» ('+(w.furigana||'')+'). English: '+en+'. Korean: '+kr+'.').slice(0,900);
         }
-        return ('Japanese vocabulary flashcard art. Soft anime illustration, Ghibli-inspired gentle colors and lighting, '+
-            'one clear focal subject, no letters or readable text in the picture. Word: '+ (w.kanji||'')+' ('+(w.furigana||'')+'). '+
-            'English meaning: '+en+'. Korean meaning: '+kr+'.'+ex).slice(0,900);
+        return (scene+
+            'Create a single illustration in Studio Ghibli–inspired anime film style: hand-painted backgrounds, soft watercolor-like colors, '+
+            'warm diffused light, gentle expressive mood, cinematic wide or medium shot. '+
+            'The image must visually represent the meaning of vocabulary, not random decoration. '+
+            'Japanese: '+(w.kanji||'')+' ('+(w.furigana||'')+'). English meaning: '+en+'. Korean meaning: '+kr+'. '+
+            'Absolutely no text, letters, captions, or watermarks in the image.'
+        ).slice(0,900);
     }
-    function dataUrlFromImagenResponse(j){
-        if(!j) return null;
-        var preds = j.predictions || j.generatedImages;
-        if(!preds || !preds.length) return null;
-        var first = preds[0];
-        var b64 = first.bytesBase64Encoded || (first.image && first.image.imageBytes) ||
-            (first.imageBytes) || (first.bytes);
-        var mime = first.mimeType || (first.image && first.image.mimeType) || 'image/png';
-        if(!b64) return null;
-        return 'data:'+mime+';base64,'+b64;
+    function dataUrlFromGenerateContent(j){
+        if(!j || !j.candidates || !j.candidates.length) return null;
+        var c0 = j.candidates[0];
+        if(c0.finishReason && c0.finishReason !== 'STOP'){
+            try { console.warn('[Gemini Image] finishReason', c0.finishReason, c0); } catch(z){}
+        }
+        var parts = c0.content && c0.content.parts;
+        if(!parts) return null;
+        for(var i=0;i<parts.length;i++){
+            var p = parts[i];
+            var id = p.inlineData || p.inline_data;
+            if(id && id.data){
+                var mime = id.mimeType || id.mime_type || 'image/png';
+                return 'data:'+mime+';base64,'+id.data;
+            }
+        }
+        return null;
     }
-    async function geminiImagenDataUrl(w){
+    async function geminiNativeImageDataUrl(w){
         if(!GEMINI_API_KEY) return null;
         var prompt = buildGeminiImagePrompt(w);
         if(prompt.length>950) prompt = prompt.slice(0,950);
-        var url = 'https://generativelanguage.googleapis.com/v1beta/models/'+GEMINI_IMAGEN_MODEL+
-            ':predict?key='+encodeURIComponent(GEMINI_API_KEY);
-        var body = {
-            instances: [ { prompt: prompt } ],
-            parameters: { sampleCount: 1, aspectRatio: '4:3', personGeneration: 'allow_adult' }
+        var bodyBase = {
+            contents: [ { role: 'user', parts: [ { text: prompt } ] } ],
+            generationConfig: {
+                responseModalities: ['TEXT','IMAGE'],
+                imageConfig: { aspectRatio: '4:3', imageSize: '1K' }
+            }
         };
-        var res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        var j = await res.json().catch(function(){ return null; });
-        if(!res.ok){
-            try { console.warn('[Gemini Imagen]', res.status, j); } catch(z){}
-            return null;
+        for(var mi=0; mi<GEMINI_IMAGE_MODELS.length; mi++){
+            var model = GEMINI_IMAGE_MODELS[mi];
+            var url = 'https://generativelanguage.googleapis.com/v1beta/models/'+model+
+                ':generateContent?key='+encodeURIComponent(GEMINI_API_KEY);
+            var tryBodies = [
+                bodyBase,
+                { contents: bodyBase.contents, generationConfig: { responseModalities: ['IMAGE'] } },
+                { contents: bodyBase.contents, generationConfig: { responseModalities: ['TEXT','IMAGE'] } }
+            ];
+            for(var bi=0; bi<tryBodies.length; bi++){
+                try {
+                    var res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(tryBodies[bi])
+                    });
+                    var j = await res.json().catch(function(){ return null; });
+                    if(!res.ok){
+                        try { console.warn('[Gemini Image]', model, res.status, j); } catch(z){}
+                        continue;
+                    }
+                    var d = dataUrlFromGenerateContent(j);
+                    if(d) return d;
+                    if(j && j.promptFeedback){
+                        try { console.warn('[Gemini Image] promptFeedback', j.promptFeedback); } catch(z){}
+                    }
+                } catch(e){
+                    try { console.warn('[Gemini Image] fetch', model, e); } catch(z){}
+                }
+            }
         }
-        var d = dataUrlFromImagenResponse(j);
-        if(!d && j && j.error){
-            try { console.warn('[Gemini Imagen] error field', j.error); } catch(z){}
-        }
-        return d;
+        return null;
     }
     async function loadWordImageUrl(w){
         if(state.imgCache[w.id]) return state.imgCache[w.id];
         try {
-            var gem = await geminiImagenDataUrl(w);
+            var gem = await geminiNativeImageDataUrl(w);
             if(gem){
                 state.imgCache[w.id]=gem; save(); return gem;
             }
