@@ -489,7 +489,7 @@
         skimRightByDate:{}, skimLeftByDate:{},
         totalSkimMs:0, skimCardsShown:0, skimOpenDates:{},
         totalFcMs:0, fcCardsDone:0, fcOpenDates:{},
-        imgPipelineVer:7
+        imgPipelineVer:8
     };
     let skimSessionStart = 0;
     let wgFilter = 'all';
@@ -511,9 +511,9 @@
                 if(o[k]!==undefined && k!=='db') state[k]=o[k];
             });
             if(!state.imgCache) state.imgCache = {};
-            if(!state.imgPipelineVer || state.imgPipelineVer < 7){
+            if(!state.imgPipelineVer || state.imgPipelineVer < 8){
                 state.imgCache = {};
-                state.imgPipelineVer = 7;
+                state.imgPipelineVer = 8;
             }
         } catch(e){ console.warn(e); }
     }
@@ -620,9 +620,6 @@
         return (ii && (ii.thumburl || ii.url)) || null;
     }
 
-    function loremFlickrAnimeUrl(w){
-        return 'https://loremflickr.com/480/270/anime,illustration,cartoon/all?lock='+(w.id % 100000);
-    }
     function primaryEnglishMeaning(w){
         if(!w || !w.meaning_en) return '';
         var s = String(w.meaning_en).split(/[,;]/)[0].trim();
@@ -643,12 +640,6 @@
         return ('Japanese vocabulary flashcard art. Soft anime illustration, Ghibli-inspired gentle colors and lighting, '+
             'one clear focal subject, no letters or readable text in the picture. Word: '+ (w.kanji||'')+' ('+(w.furigana||'')+'). '+
             'English meaning: '+en+'. Korean meaning: '+kr+'.'+ex).slice(0,900);
-    }
-    function pollinationsImageUrl(w){
-        var prompt = buildGeminiImagePrompt(w);
-        if(prompt.length>900) prompt = prompt.slice(0,900);
-        return 'https://image.pollinations.ai/prompt/'+encodeURIComponent(prompt)+
-            '?width=480&height=320&seed='+w.id+'&nologo=true';
     }
     function dataUrlFromImagenResponse(j){
         if(!j) return null;
@@ -697,8 +688,7 @@
         } catch(e){
             try { console.warn('[Gemini]', e); } catch(z){}
         }
-        var pollUrl = pollinationsImageUrl(w);
-        state.imgCache[w.id]=pollUrl; save(); return pollUrl;
+        return null;
     }
 
     function setImgPlaceholder(el, w){
@@ -708,7 +698,7 @@
             var img = document.createElement('img');
             img.src = u;
             img.alt = '';
-            img.onerror = function(){ this.onerror=null; this.src=loremFlickrAnimeUrl(w); };
+            img.onerror = function(){ this.onerror=null; };
             el.innerHTML = '';
             el.appendChild(img);
         });
