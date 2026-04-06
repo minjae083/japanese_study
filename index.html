@@ -304,9 +304,8 @@
         <input type="date" id="goal-date" onchange="checkGoalReady()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:12px;">
         <p style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">하루 학습 단어 수</p>
         <input type="number" id="goal-count" min="1" placeholder="예: 20" oninput="checkGoalReady()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:12px;">
-        <p style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">단어 이미지 API (선택 · 뜻과 맞는 일러스트에 유리)</p>
-        <input type="password" id="pixabay-key" autocomplete="off" placeholder="Pixabay API 키" onblur="saveImageApiKeys()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:8px;font-size:13px;">
-        <input type="password" id="pexels-key" autocomplete="off" placeholder="Pexels API 키 (또는 위만 입력)" onblur="saveImageApiKeys()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:18px;font-size:13px;">
+        <p style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">AI 이미지 생성 (선택 · Nano Bnana Pro)</p>
+        <input type="password" id="nanobnana-key" autocomplete="off" placeholder="nanobnana.com 대시보드 → API Keys" onblur="saveNanoApiKey()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:18px;font-size:13px;">
         <p id="goal-hint" style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:10px;display:none;"></p>
         <button type="button" id="btn-goal-complete" class="btn-primary" disabled onclick="completeGoal()">설정 완료 및 시작</button>
     </div>
@@ -489,7 +488,7 @@
         skimRightByDate:{}, skimLeftByDate:{},
         totalSkimMs:0, skimCardsShown:0, skimOpenDates:{},
         totalFcMs:0, fcCardsDone:0, fcOpenDates:{},
-        imgPipelineVer:3
+        imgPipelineVer:5
     };
     let skimSessionStart = 0;
     let wgFilter = 'all';
@@ -511,9 +510,9 @@
                 if(o[k]!==undefined && k!=='db') state[k]=o[k];
             });
             if(!state.imgCache) state.imgCache = {};
-            if(!state.imgPipelineVer || state.imgPipelineVer < 3){
+            if(!state.imgPipelineVer || state.imgPipelineVer < 5){
                 state.imgCache = {};
-                state.imgPipelineVer = 3;
+                state.imgPipelineVer = 5;
             }
         } catch(e){ console.warn(e); }
     }
@@ -627,74 +626,66 @@
         if(!w || !w.meaning_en) return '';
         var s = String(w.meaning_en).split(/[,;]/)[0].trim();
         s = s.replace(/^(to|a|an|the)\s+/i,'').trim();
-        return s.length>90 ? s.slice(0,90) : s;
+        return s.length>80 ? s.slice(0,80) : s;
     }
-    async function fetchPixabayMulti(w){
-        var key = localStorage.getItem('pixabay_api_key');
-        if(!key) return null;
-        var base = primaryEnglishMeaning(w);
-        if(!base||base.length<2){
-            base = (w.kanji || w.furigana || 'japanese vocabulary').trim();
+    function buildNanoPrompt(w){
+        var en = primaryEnglishMeaning(w);
+        var kr = w.meaning ? String(w.meaning).split(/[,;]/)[0].trim() : '';
+        var core = en || kr || (w.kanji || '') || 'vocabulary concept';
+        var realism = state.theme === 'realism';
+        if(realism){
+            return 'Photorealistic editorial photograph, natural light, no text, no watermark, subject: '+core.slice(0,400)+
+                (kr && en ? ', note: '+kr.slice(0,80) : '');
         }
-        var tails = [
-            ' anime illustration',
-            ' cartoon cute illustration',
-            ' manga drawing',
-            ' vector illustration concept'
-        ];
-        for(var i=0;i<tails.length;i++){
-            try {
-                var q = base + tails[i];
-                var url = 'https://pixabay.com/api/?key='+encodeURIComponent(key)+'&q='+encodeURIComponent(q)+'&image_type=all&safesearch=true&per_page=3';
-                var r = await fetch(url);
-                var j = await r.json();
-                if(j.hits && j.hits[0] && j.hits[0].webformatURL) return j.hits[0].webformatURL;
-            } catch(e){}
-        }
-        return null;
+        return 'Soft anime illustration, warm pastel colors, clean simple composition, no text no letters, visual concept for: '+
+            core.slice(0,400)+(kr && en ? ' ('+kr.slice(0,60)+')' : '');
     }
-    async function fetchPexelsMulti(w){
-        var key = localStorage.getItem('pexels_api_key');
-        if(!key) return null;
-        var base = primaryEnglishMeaning(w);
-        if(!base||base.length<2) return null;
-        var tails = [
-            ' anime illustration',
-            ' cartoon drawing',
-            ' illustration flat'
-        ];
-        for(var i=0;i<tails.length;i++){
-            try {
-                var q = base + tails[i];
-                var url = 'https://api.pexels.com/v1/search?query='+encodeURIComponent(q)+'&per_page=1&size=small';
-                var r = await fetch(url, { headers: { Authorization: key } });
-                var j = await r.json();
-                if(j.photos && j.photos[0]){
-                    var p = j.photos[0].src;
-                    return (p.medium || p.small || p.original) || null;
-                }
-            } catch(e){}
+    async function nanoGenerateImageUrl(w, apiKey){
+        var prompt = buildNanoPrompt(w);
+        if(prompt.length>950) prompt = prompt.slice(0,950);
+        var genRes = await fetch('https://nanobnana.com/api/v2/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer '+apiKey },
+            body: JSON.stringify({ prompt: prompt, aspect_ratio: '4:3', size: '1K', format: 'png' })
+        });
+        if(!genRes.ok) return null;
+        var genJson = await genRes.json();
+        if(!genJson || genJson.code !== 200 || !genJson.data || !genJson.data.task_id) return null;
+        var taskId = genJson.data.task_id;
+        for(var poll=0; poll<45; poll++){
+            await new Promise(function(r){ setTimeout(r, poll===0 ? 2500 : 2000); });
+            var stUrl = 'https://nanobnana.com/api/v2/status?task_id='+encodeURIComponent(taskId);
+            var stRes = await fetch(stUrl, { headers: { 'Authorization': 'Bearer '+apiKey } });
+            if(stRes.status === 401){
+                stRes = await fetch(stUrl);
+            }
+            if(!stRes.ok) continue;
+            var stJson = await stRes.json();
+            if(!stJson || stJson.code !== 200 || !stJson.data) continue;
+            var d = stJson.data;
+            if(d.status === 1 && d.response){
+                try {
+                    var urls = JSON.parse(d.response);
+                    if(Array.isArray(urls) && urls.length && urls[0]) return urls[0];
+                } catch(e){}
+            }
+            if(d.status === -1) return null;
         }
         return null;
     }
     async function loadWordImageUrl(w){
         if(state.imgCache[w.id]) return state.imgCache[w.id];
+        var apiKey = localStorage.getItem('nanobnana_api_key');
+        if(apiKey){
+            try {
+                var nanoUrl = await nanoGenerateImageUrl(w, apiKey);
+                if(nanoUrl){
+                    state.imgCache[w.id]=nanoUrl; save(); return nanoUrl;
+                }
+            } catch(e){}
+        }
         var realism = state.theme === 'realism';
         if(!realism){
-            try {
-                var pb = await Promise.race([
-                    fetchPixabayMulti(w),
-                    new Promise(function(_,rej){ setTimeout(function(){ rej(); }, 3800); })
-                ]);
-                if(pb){ state.imgCache[w.id]=pb; save(); return pb; }
-            } catch(e){}
-            try {
-                var px = await Promise.race([
-                    fetchPexelsMulti(w),
-                    new Promise(function(_,rej){ setTimeout(function(){ rej(); }, 3800); })
-                ]);
-                if(px){ state.imgCache[w.id]=px; save(); return px; }
-            } catch(e){}
             var animeFallback = loremFlickrAnimeUrl(w);
             state.imgCache[w.id]=animeFallback; save(); return animeFallback;
         }
@@ -709,20 +700,6 @@
                 if(thumb){ state.imgCache[w.id]=thumb; save(); return thumb; }
             } catch(e){}
         }
-        try {
-            var pb2 = await Promise.race([
-                fetchPixabayMulti(w),
-                new Promise(function(_,rej){ setTimeout(function(){ rej(); }, 3800); })
-            ]);
-            if(pb2){ state.imgCache[w.id]=pb2; save(); return pb2; }
-        } catch(e){}
-        try {
-            var px2 = await Promise.race([
-                fetchPexelsMulti(w),
-                new Promise(function(_,rej){ setTimeout(function(){ rej(); }, 3800); })
-            ]);
-            if(px2){ state.imgCache[w.id]=px2; save(); return px2; }
-        } catch(e){}
         var lf = loremFlickrAnimeUrl(w);
         state.imgCache[w.id]=lf; save(); return lf;
     }
@@ -949,13 +926,12 @@
         showScreen('report');
     }
 
-    window.saveImageApiKeys = function(){
-        var pb = document.getElementById('pixabay-key');
-        var px = document.getElementById('pexels-key');
-        if(pb) localStorage.setItem('pixabay_api_key', pb.value.trim());
-        if(px) localStorage.setItem('pexels_api_key', px.value.trim());
+    window.saveNanoApiKey = function(){
+        var el = document.getElementById('nanobnana-key');
+        if(!el) return;
+        localStorage.setItem('nanobnana_api_key', el.value.trim());
         state.imgCache = {};
-        state.imgPipelineVer = 3;
+        state.imgPipelineVer = 5;
         save();
     };
     window.showGoalSetting = function(from){
@@ -965,10 +941,8 @@
         document.querySelectorAll('[data-g="target"]').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-v')===state.targetLvl); });
         document.getElementById('goal-date').value = state.examDate||'';
         document.getElementById('goal-count').value = state.dailyGoal||'';
-        var pk = document.getElementById('pixabay-key');
-        if(pk) pk.value = localStorage.getItem('pixabay_api_key')||'';
-        var pk2 = document.getElementById('pexels-key');
-        if(pk2) pk2.value = localStorage.getItem('pexels_api_key')||'';
+        var nk = document.getElementById('nanobnana-key');
+        if(nk) nk.value = localStorage.getItem('nanobnana_api_key')||'';
         checkGoalReady();
         showScreen('goal');
     };
@@ -994,6 +968,8 @@
     window.completeGoal = function(){
         state.examDate = document.getElementById('goal-date').value;
         state.dailyGoal = parseInt(document.getElementById('goal-count').value,10);
+        var nk = document.getElementById('nanobnana-key');
+        if(nk) localStorage.setItem('nanobnana_api_key', nk.value.trim());
         state.phase='main';
         save();
         fillJlptSelect();
