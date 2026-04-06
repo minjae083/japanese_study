@@ -4,21 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>JLPT Swipe Master Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Noto+Sans+KR:wght@500;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+JP:wght@500;700;900&family=Noto+Sans+KR:wght@500;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #FF6B6B; --accent: #4ECDC4; --bg: #F5F5F7;
-            --card-bg: #FFFFFF; --text-main: #1D1D1F; --text-sub: #86868B;
-            --border: rgba(0,0,0,0.08); --shadow: 0 15px 35px rgba(0,0,0,0.1);
-            --radius: 25px; --ok: #2e7d32; --bad: #c62828; --mid: #757575;
+            --primary: #E85D4C; --accent: #3EB8A8; --bg: #ECECF0;
+            --card-bg: #FFFFFF; --text-main: #141418; --text-sub: #6B6B76;
+            --border: rgba(15,15,20,0.08); --shadow: 0 12px 40px rgba(20,20,30,0.08);
+            --shadow-sm: 0 4px 20px rgba(20,20,30,0.06);
+            --radius: 20px; --radius-lg: 24px; --ok: #1d7a3d; --bad: #c41e1e; --mid: #5c5c66;
+            --font-ui: 'Plus Jakarta Sans', 'Noto Sans KR', system-ui, sans-serif;
+            --font-body: 'Noto Sans KR', var(--font-ui);
         }
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
         html{height:100%;height:-webkit-fill-available;}
-        body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text-main);overflow:hidden;height:100%;min-height:100vh;min-height:100dvh;}
+        body{font-family:var(--font-body);background:var(--bg);color:var(--text-main);overflow:hidden;height:100%;min-height:100vh;min-height:100dvh;-webkit-font-smoothing:antialiased;}
         button{cursor:pointer;border:none;outline:none;font-family:inherit;}
-        ruby rt { font-size: 0.55em; color: var(--primary); font-family: 'Noto Sans JP'; line-height: 1; }
+        ruby rt { font-size: 0.55em; color: var(--accent); font-family: 'Noto Sans JP'; line-height: 1; }
         .hidden{display:none !important;}
-        #app{width:100%;max-width:430px;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;margin:0 auto;position:relative;overflow:hidden;}
+        #app{width:100%;max-width:min(100%,480px);height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;margin:0 auto;position:relative;overflow:hidden;}
         .screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity .25s;z-index:10;background:var(--bg);min-height:0;max-height:100dvh;}
         .screen.active{opacity:1;pointer-events:all;}
         .screen.hidden{opacity:0;pointer-events:none;}
@@ -64,29 +67,38 @@
             background:#fff; border-radius:22px; width:100%; max-width:400px; max-height:85vh; overflow-y:auto;
             padding:18px; position:relative; box-shadow:0 20px 60px rgba(0,0,0,.2);
         }
-        .cal-modal-close { position:absolute; top:12px; left:12px; width:36px; height:36px; border-radius:50%; background:#222; color:#fff; font-size:18px; line-height:36px; text-align:center; }
+        .cal-modal-close { position:absolute; top:12px; left:12px; width:40px; height:40px; border-radius:50%; background:#1a1a22 !important; color:#fff; display:flex; align-items:center; justify-content:center; }
+        .cal-modal-close svg { stroke:#fff; }
 
         /* —— 중앙 모듈 —— */
         .home-center { flex:0 0 auto; display:flex; flex-direction:column; justify-content:flex-start; min-height:0; padding:4px 14px 4px; gap:12px; position:relative; z-index:2; }
         .mod-card {
-            background:var(--card-bg); border-radius:20px; padding:14px 14px 12px; border:1px solid var(--border);
-            box-shadow:var(--shadow); text-align:center;
+            background:var(--card-bg); border-radius:var(--radius-lg); padding:16px 16px 14px; border:1px solid var(--border);
+            box-shadow:var(--shadow-sm); text-align:center;
         }
-        .mod-card h3 { font-size:15px; font-weight:900; margin-bottom:8px; }
+        .mod-card h3 { font-family:var(--font-ui); font-size:15px; font-weight:800; margin-bottom:10px; letter-spacing:-0.02em; display:flex; align-items:center; justify-content:center; gap:8px; }
+        .mod-ico { display:inline-flex; align-items:center; justify-content:center; color:var(--primary); }
+        .mod-ico svg { width:20px; height:20px; }
         .h-gauge { height:8px; background:#eee; border-radius:99px; overflow:hidden; margin-bottom:6px; }
         .h-gauge > i { display:block; height:100%; background:linear-gradient(90deg,var(--accent),var(--primary)); width:0%; transition:width .35s ease; border-radius:99px; }
         .mod-status { font-size:12px; font-weight:800; margin-bottom:10px; color:var(--text-sub); }
         .mod-status.done { color:var(--ok); }
         .mod-status.ing { color:#1565c0; }
-        .btn-go { width:100%; padding:12px; border-radius:14px; font-weight:900; font-size:14px; background:#1a1a1a; color:#fff; }
+        .btn-go { width:100%; padding:14px; border-radius:16px; font-family:var(--font-ui); font-weight:800; font-size:14px; background:#12121a; color:#fff; min-height:48px; }
         .btn-go:disabled { opacity:.45; pointer-events:none; }
         .btn-sub { margin-top:8px; padding:10px; border-radius:12px; font-weight:800; font-size:13px; background:rgba(78,205,196,.15); color:#00695c; border:1px solid var(--accent); width:100%; }
         .btn-sub:disabled { opacity:.4; }
 
-        .home-head { padding:16px 16px 8px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-shrink:0; }
-        .jlpt-select { font-weight:900; font-size:17px; padding:6px 10px; border-radius:12px; border:1px solid var(--border); background:#fff; }
-        .home-fab { position:fixed; right:12px; bottom:calc(16px + env(safe-area-inset-bottom,0)); z-index:900; display:flex; flex-direction:column; gap:8px; }
-        .home-fab button { width:50px; height:50px; border-radius:50%; background:#fff; box-shadow:var(--shadow); border:1px solid var(--border); font-size:19px; }
+        .home-head { padding:14px 16px 10px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-shrink:0; }
+        .jlpt-select { font-family:var(--font-ui); font-weight:800; font-size:16px; padding:8px 12px; border-radius:14px; border:1px solid var(--border); background:#fff; box-shadow:var(--shadow-sm); }
+        .home-fab { position:fixed; right:max(12px, env(safe-area-inset-right)); bottom:calc(14px + env(safe-area-inset-bottom,0)); z-index:900; display:flex; flex-direction:column; gap:10px; }
+        .home-fab button {
+            width:52px; height:52px; border-radius:16px; background:#fff; box-shadow:var(--shadow-sm);
+            border:1px solid var(--border); color:var(--text-main);
+            display:flex; align-items:center; justify-content:center;
+        }
+        .home-fab button svg { width:24px; height:24px; }
+        .home-fab button:active { transform:scale(0.96); }
 
         /* 스키밍: 그리드로 하단 버튼 고정, 가운데만 스크롤 */
         #screen-skimming.screen-skimming {
@@ -120,24 +132,61 @@
         .c-img .ph-loading span { font-size:12px; font-weight:800; color:var(--text-sub); line-height:1.4; max-width:220px; }
         .c-img .ph-spinner { width:38px; height:38px; border-radius:50%; border:3px solid rgba(78,205,196,.2); border-top-color:var(--accent); animation:phspin .75s linear infinite; }
         @keyframes phspin { to { transform:rotate(360deg); } }
-        .c-bookmark { position:absolute; top:10px; right:10px; font-size:21px; z-index:2; cursor:pointer; }
+        .c-bookmark {
+            position:absolute; top:10px; right:10px; z-index:2; cursor:pointer;
+            width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.92);
+            display:flex; align-items:center; justify-content:center; box-shadow:0 2px 12px rgba(0,0,0,.1);
+            border:1px solid rgba(0,0,0,.06); color:var(--text-sub);
+        }
+        .c-bookmark svg { width:20px; height:20px; }
+        .c-bookmark.active { color:var(--primary); }
         .c-body { padding:14px 14px 16px; flex-shrink:0; text-align:center; }
         .c-furi { font-size:14px; color:var(--accent); font-family:'Noto Sans JP'; font-weight:700; }
         .c-kanji { font-size:34px; font-weight:900; font-family:'Noto Sans JP'; margin:4px 0; line-height:1.2; word-break:break-all; }
         .c-meaning { font-size:17px; font-weight:700; }
         .c-pos { font-size:11px; color:var(--text-sub); margin-top:4px; }
-        .c-ex { background:#f9f9f9; padding:12px; border-radius:14px; text-align:left; margin-top:10px; border-left:4px solid var(--accent); font-size:13px; line-height:1.55; word-break:break-word; }
-        .c-lvl { position:absolute; bottom:8px; left:8px; background:var(--primary); color:#fff; padding:3px 8px; border-radius:8px; font-size:10px; font-weight:900; }
+        .tts-w, .tts-e { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; min-width:36px;
+            border-radius:11px; background:#f0f1f4; margin:0 0 0 6px; vertical-align:middle; cursor:pointer; color:var(--text-main);
+        }
+        .tts-w:active, .tts-e:active { background:#e4e6ea; }
+        .tts-w svg, .tts-e svg { width:18px; height:18px; }
+        .c-ex { background:#f6f7f9; padding:12px; border-radius:14px; text-align:left; margin-top:10px; border-left:3px solid var(--accent); font-size:13px; line-height:1.55; word-break:break-word; }
+        .btn-tip {
+            padding:8px 14px; border-radius:999px; font-size:11px; font-family:var(--font-ui); font-weight:700;
+            background:linear-gradient(135deg,#f3f0ff,#ede9fe); color:#5b4d9a; border:1px solid rgba(91,77,154,.18);
+            min-height:36px; display:inline-flex; align-items:center; gap:6px;
+        }
+        .btn-tip svg { width:14px; height:14px; opacity:.85; }
+        .c-lvl { position:absolute; bottom:8px; left:8px; background:var(--text-main); color:#fff; padding:4px 9px; border-radius:8px; font-size:10px; font-family:var(--font-ui); font-weight:800; letter-spacing:.02em; }
         .skim-btns { display:flex; gap:10px; padding:10px 14px calc(12px + env(safe-area-inset-bottom,0)); flex-shrink:0; background:var(--bg); }
 
         .goal-opt { padding:10px; border-radius:12px; border:1.5px solid var(--border); background:#fff; font-weight:700; font-size:12px; color:var(--text-sub); text-align:center; }
         .goal-opt.active { border-color:var(--primary); color:var(--primary); background:rgba(255,107,107,.06); }
-        .btn-primary { background:var(--primary); color:#fff; padding:15px; border-radius:18px; font-weight:900; width:100%; font-size:15px; box-shadow:0 10px 25px rgba(255,107,107,.28); }
-        .btn-skim { flex:1; padding:14px; border-radius:16px; font-weight:800; font-size:13px; }
+        .btn-primary { background:var(--primary); color:#fff; padding:15px; border-radius:18px; font-family:var(--font-ui); font-weight:800; width:100%; font-size:15px; min-height:50px; box-shadow:0 8px 28px rgba(232,93,76,.28); }
+        .btn-skim { flex:1; padding:15px 12px; border-radius:16px; font-family:var(--font-ui); font-weight:800; font-size:14px; min-height:52px; }
         .btn-skim.know { background:rgba(78,205,196,.12); color:#00897b; border:1.5px solid var(--accent); }
         .btn-skim.learn { background:rgba(255,107,107,.1); color:var(--primary); border:1.5px solid var(--primary); }
-        .subbar { display:flex; align-items:center; padding:10px 14px; gap:10px; flex-shrink:0; }
-        .subbar .back { font-size:22px; background:none; padding:4px; }
+        .subbar { display:flex; align-items:center; padding:8px 12px min(10px, env(safe-area-inset-top)); gap:8px; flex-shrink:0; min-height:52px; }
+        .subbar-balanced { display:grid; grid-template-columns:44px 1fr 44px; align-items:center; gap:4px; padding-left:8px !important; padding-right:8px !important; }
+        .subbar-balanced .subbar-title { text-align:center; margin:0; font-family:var(--font-ui); font-weight:800; font-size:clamp(15px, 4vw, 17px); letter-spacing:-0.03em; }
+        .subbar-spacer { width:44px; height:1px; pointer-events:none; }
+        .subbar h2 { font-family:var(--font-ui); font-weight:800; font-size:clamp(15px, 4vw, 17px); letter-spacing:-0.03em; }
+        .tip-tts { display:inline-flex; align-items:center; justify-content:center; vertical-align:middle; cursor:pointer; padding:4px; border-radius:8px; }
+        .tip-tts svg { width:18px; height:18px; }
+        .tip-tts:active { background:rgba(0,0,0,.06); }
+        .btn-icon-plain {
+            display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; min-width:44px;
+            border-radius:14px; background:transparent; color:var(--text-main); border:none; padding:0;
+        }
+        .btn-icon-plain:active { background:rgba(0,0,0,.06); }
+        .btn-icon-plain svg { width:22px; height:22px; flex-shrink:0; stroke-width:2; }
+        .subbar-fc-back { display:inline-flex; align-items:center; gap:6px; background:transparent; border:none; font-family:var(--font-ui); font-weight:700; font-size:14px; color:var(--text-main); padding:8px 10px; border-radius:12px; cursor:pointer; min-height:44px; }
+        .subbar-fc-back:active { background:rgba(0,0,0,.06); }
+        .fc-speak { width:52px; height:52px; border-radius:50%; border:none; background:#f0f1f4; display:flex; align-items:center; justify-content:center; margin-top:14px; cursor:pointer; color:var(--text-main); box-shadow:var(--shadow-sm); }
+        .fc-speak:active { transform:scale(0.96); }
+        .fc-vol-ico svg { width:26px; height:26px; }
+        .quiz-home-btn { display:inline-flex; align-items:center; gap:6px; background:#f0f1f4; border:none; font-family:var(--font-ui); font-weight:700; font-size:13px; padding:10px 14px; border-radius:12px; cursor:pointer; min-height:44px; }
+        .quiz-home-btn:active { opacity:.9; }
 
         #screen-flashcard.screen-flashcard {
             display:grid; grid-template-rows:auto minmax(0,1fr) auto auto;
@@ -153,39 +202,48 @@
         }
         .fc-back-scroll { overflow-y:auto; -webkit-overflow-scrolling:touch; min-height:0; flex:unset !important; perspective:none; }
         #fc-front-screen .fc-kanji { font-size:44px; font-family:'Noto Sans JP'; font-weight:900; }
-        .fc-actions { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; padding:10px 10px 6px; flex-shrink:0; }
-        .fc-actions button { padding:9px 12px; border-radius:12px; font-weight:800; font-size:11px; }
+        .fc-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; padding:12px 10px 8px; flex-shrink:0; }
+        .fc-actions button { padding:10px 14px; border-radius:12px; font-family:var(--font-ui); font-weight:700; font-size:12px; min-height:44px; }
         .fc-btn-unk { background:rgba(198,40,40,.12); color:var(--bad); border:1px solid rgba(198,40,40,.35); }
         .fc-btn-mid { background:rgba(117,117,117,.12); color:var(--mid); border:1px solid rgba(117,117,117,.35); }
         .fc-btn-easy { background:rgba(46,125,50,.12); color:var(--ok); border:1px solid rgba(46,125,50,.35); }
         .fc-btn-unk.sel,.fc-btn-mid.sel,.fc-btn-easy.sel { box-shadow:0 0 0 2px var(--primary); }
         .fc-nav-row { display:flex; gap:10px; padding:6px 14px calc(12px + env(safe-area-inset-bottom,0)); flex-shrink:0; }
         .fc-back-btn { flex:1; padding:12px; border-radius:14px; font-weight:800; background:#eee; color:#333; }
-        .fc-next-btn { flex:1; padding:12px; border-radius:14px; font-weight:800; background:var(--primary); color:#fff; }
+        .fc-next-btn { flex:1; padding:12px; border-radius:14px; font-family:var(--font-ui); font-weight:800; background:var(--primary); color:#fff; display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:48px; }
+        .fc-next-btn .fc-next-ico svg { width:22px; height:22px; }
 
-        /* 단어 보기 3열 */
-        .word-grid-screen { padding:14px; overflow-y:auto; padding-bottom:40px; }
+        /* 단어 보기 — 반응형 그리드 */
+        .word-grid-screen { padding:12px clamp(10px, 3vw, 16px); overflow-y:auto; padding-bottom:max(40px, env(safe-area-inset-bottom)); -webkit-overflow-scrolling:touch; }
         .wg-head { font-size:14px; font-weight:800; margin-bottom:12px; color:var(--text-sub); }
-        .wg-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-        .wg-cell {
-            background:#fff; border-radius:16px; overflow:hidden; border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,.06);
-            font-size:11px; text-align:center; cursor:pointer;
+        .wg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); gap:clamp(8px, 2.5vw, 12px); }
+        @media (min-width: 400px) {
+            .wg-grid { grid-template-columns:repeat(3, 1fr); }
         }
-        .wg-cell .im { height:88px; background:#e8eaef; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .wg-cell {
+            background:#fff; border-radius:16px; overflow:hidden; border:1px solid var(--border); box-shadow:var(--shadow-sm);
+            font-size:11px; text-align:center; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease;
+        }
+        .wg-cell:active { transform:scale(0.98); }
+        .wg-cell .im { height:clamp(76px, 22vw, 100px); background:linear-gradient(160deg,#eef0f4,#e4e7ec); display:flex; align-items:center; justify-content:center; overflow:hidden; }
         .wg-cell .im img { width:100%; height:100%; object-fit:contain; object-position:center; }
         .wg-cell .tx { padding:8px 6px; }
         .wg-cell .kj { font-family:'Noto Sans JP'; font-weight:900; font-size:13px; line-height:1.2; word-break:break-all; }
         .wg-cell .ps { font-size:9px; color:var(--text-sub); margin-top:2px; }
         .wg-cell .mn { font-size:10px; margin-top:4px; color:var(--text-main); line-height:1.3; }
         .wg-filter { display:flex; gap:8px; margin-bottom:12px; padding:0 4px; flex-wrap:wrap; }
-        .wg-filter button { padding:10px 14px; border-radius:12px; font-size:12px; font-weight:800; background:#eee; border:1px solid var(--border); }
+        .wg-filter button { padding:10px 14px; border-radius:999px; font-size:12px; font-family:var(--font-ui); font-weight:700; background:#fff; border:1px solid var(--border); min-height:40px; }
         .wg-filter button.on { background:var(--primary); color:#fff; border-color:var(--primary); }
-        .pack-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-        .pack-cell {
-            background:#fff; border-radius:14px; overflow:hidden; border:1px solid var(--border);
-            box-shadow:0 4px 10px rgba(0,0,0,.06); font-size:11px; text-align:center;
+        .pack-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); gap:clamp(8px, 2.5vw, 12px); }
+        @media (min-width: 400px) {
+            .pack-grid { grid-template-columns:repeat(3, 1fr); }
         }
-        .pack-cell .im { height:88px; background:#e8eaef; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .pack-cell {
+            background:#fff; border-radius:16px; overflow:hidden; border:1px solid var(--border);
+            box-shadow:var(--shadow-sm); font-size:11px; text-align:center; transition:transform .15s ease;
+        }
+        .pack-cell:active { transform:scale(0.98); }
+        .pack-cell .im { height:clamp(76px, 22vw, 100px); background:linear-gradient(160deg,#eef0f4,#e4e7ec); display:flex; align-items:center; justify-content:center; overflow:hidden; }
         .pack-cell .im img { width:100%; height:100%; object-fit:contain; object-position:center; }
         .pack-cell .tx { padding:8px 6px; }
         .pack-cell .kj { font-family:'Noto Sans JP'; font-weight:900; font-size:12px; }
@@ -207,7 +265,9 @@
         .vault-row .vr-mid { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; text-align:left; }
         .vault-row .vr-mid .k { font-family:'Noto Sans JP'; font-weight:900; font-size:15px; }
         .vault-row .vr-mid .m { font-size:12px; color:var(--text-main); margin-top:2px; line-height:1.35; }
-        .vault-row .vr-bm { width:36px; display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; flex-shrink:0; }
+        .vault-row .vr-bm { width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; color:var(--text-sub); border-radius:12px; }
+        .vault-row .vr-bm svg { width:22px; height:22px; }
+        .vault-row .vr-bm.active { color:var(--primary); }
         .vault-ex { width:100%; padding:0; margin-top:8px; display:none; }
         .vault-ex.show { display:block; }
         .vault-ex-inner {
@@ -224,7 +284,7 @@
         .quiz-word { font-size:36px; font-family:'Noto Sans JP'; font-weight:900; text-align:center; margin:20px 0; min-height:48px; }
         .quiz-in { width:100%; padding:14px; border-radius:14px; border:2px solid var(--border); font-size:16px; margin-top:8px; }
         .quiz-hint { font-size:18px; color:var(--accent); text-align:center; margin:8px 0; min-height:28px; font-family:'Noto Sans JP'; }
-        .quiz-topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+        .quiz-topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; flex-wrap:wrap; }
         .quiz-furi-btn { padding:8px 14px; border-radius:12px; font-size:12px; font-weight:800; background:#eee; border:1px solid var(--border); }
         .quiz-furi-btn.on { background:var(--accent); color:#fff; border-color:var(--accent); }
 
@@ -262,7 +322,7 @@
 
     <div id="screen-skimming" class="screen hidden screen-skimming">
         <div class="subbar">
-            <button type="button" class="back" onclick="goHomeFromSkim()">←</button>
+            <button type="button" class="btn-icon-plain" onclick="goHomeFromSkim()" aria-label="뒤로"><span class="nav-back-ico"></span></button>
             <div style="flex:1;text-align:center;">
                 <div id="skim-lvl-badge" style="font-weight:900;color:var(--primary);font-size:14px;">N3</div>
                 <div id="skim-counter" style="font-family:'DM Mono';font-size:12px;color:var(--text-sub);">1 / 6</div>
@@ -326,15 +386,15 @@
         </div>
         <div id="cal-day-toast" class="cal-day-toast" role="status" aria-live="polite"></div>
         <div class="home-fab">
-            <button type="button" onclick="navigateLibrary()">📚</button>
-            <button type="button" onclick="showScreen('analysis')">📊</button>
-            <button type="button" onclick="showGoalSetting(true)">⚙️</button>
+            <button type="button" onclick="navigateLibrary()" aria-label="라이브러리" class="fab-ic-btn" data-fab="0"></button>
+            <button type="button" onclick="showScreen('analysis')" aria-label="학습 분석" class="fab-ic-btn" data-fab="1"></button>
+            <button type="button" onclick="showGoalSetting(true)" aria-label="설정" class="fab-ic-btn" data-fab="2"></button>
         </div>
     </div>
 
     <div id="cal-modal-bg" class="cal-modal-bg" onclick="if(event.target===this)closeCalModal()">
         <div class="cal-modal-sheet" onclick="event.stopPropagation()">
-            <button type="button" class="cal-modal-close" onclick="closeCalModal()">×</button>
+            <button type="button" class="cal-modal-close btn-icon-plain" onclick="closeCalModal()" aria-label="닫기"><span class="nav-x-ico"></span></button>
             <h3 style="text-align:center;margin:28px 0 14px;font-size:16px;">학습 달력</h3>
             <div id="cal-modal-body"></div>
         </div>
@@ -342,7 +402,7 @@
 
     <div id="screen-wordgrid" class="screen hidden word-grid-screen">
         <div class="subbar">
-            <button type="button" class="back" onclick="showScreen('home');renderHome();">←</button>
+            <button type="button" class="btn-icon-plain" onclick="showScreen('home');renderHome();" aria-label="뒤로"><span class="nav-back-ico"></span></button>
             <h2 style="flex:1;text-align:center;font-size:16px;">오늘의 단어</h2>
             <div style="width:32px;"></div>
         </div>
@@ -352,13 +412,13 @@
 
     <div id="screen-flashcard" class="screen hidden screen-flashcard">
         <div class="subbar">
-            <button type="button" class="back" onclick="exitFlashcard()">←</button>
+            <button type="button" class="btn-icon-plain" onclick="exitFlashcard()" aria-label="뒤로"><span class="nav-back-ico"></span></button>
             <div style="flex:1;text-align:center;font-family:'DM Mono';font-size:12px;" id="fc-progress">1/1</div>
             <div style="width:32px;"></div>
         </div>
         <div id="fc-front-screen">
             <div class="fc-kanji" id="fc-kanji"></div>
-            <div style="margin-top:12px;font-size:26px;cursor:pointer;" onclick="speakFcWord()">🔊</div>
+            <button type="button" class="fc-speak" onclick="speakFcWord()" aria-label="발음 듣기"><span class="fc-vol-ico"></span></button>
         </div>
         <div class="fc-actions">
             <button type="button" class="fc-btn-unk" id="fc-unk" onclick="setFcRating('unknown')">몰랐던</button>
@@ -367,12 +427,12 @@
         </div>
         <div class="fc-nav-row">
             <button type="button" class="fc-back-btn" onclick="toggleFcBack()">뒷면보기</button>
-            <button type="button" class="fc-next-btn" onclick="fcNext()">→</button>
+            <button type="button" class="fc-next-btn" onclick="fcNext()" aria-label="다음 단어"><span class="fc-next-ico"></span></button>
         </div>
     </div>
 
     <div id="screen-flashcard-back" class="screen hidden screen-fc-back">
-        <div class="subbar"><button type="button" class="back" onclick="toggleFcBack()">← 앞면</button></div>
+        <div class="subbar"><button type="button" class="subbar-fc-back" onclick="toggleFcBack()"><span class="nav-back-ico"></span><span>앞면</span></button></div>
         <div class="swipe-zone fc-back-scroll"><div id="fc-full-card-zone" style="width:100%;min-height:200px;"></div></div>
     </div>
 
@@ -390,9 +450,10 @@
     </div>
 
     <div id="screen-library" class="screen hidden" style="padding:14px;overflow-y:auto;padding-bottom:32px;">
-        <div class="subbar" style="padding-left:0;">
-            <button type="button" class="back" onclick="showScreen('home')">←</button>
-            <h2 style="font-size:17px;">라이브러리</h2>
+        <div class="subbar subbar-balanced" style="padding-left:0;">
+            <button type="button" class="btn-icon-plain" onclick="showScreen('home')" aria-label="뒤로"><span class="nav-back-ico"></span></button>
+            <h2 class="subbar-title">라이브러리</h2>
+            <div class="subbar-spacer" aria-hidden="true"></div>
         </div>
         <div class="lib-tabs">
             <button type="button" class="lib-tab active" id="tab-pack" onclick="setLibMainTab('pack')">단어팩</button>
@@ -421,9 +482,10 @@
     </div>
 
     <div id="screen-analysis" class="screen hidden" style="padding:14px;overflow-y:auto;padding-bottom:40px;">
-        <div class="subbar" style="padding-left:0;">
-            <button type="button" class="back" onclick="showScreen('home')">←</button>
-            <h2 style="font-size:17px;">학습 분석</h2>
+        <div class="subbar subbar-balanced" style="padding-left:0;">
+            <button type="button" class="btn-icon-plain" onclick="showScreen('home')" aria-label="뒤로"><span class="nav-back-ico"></span></button>
+            <h2 class="subbar-title">학습 분석</h2>
+            <div class="subbar-spacer" aria-hidden="true"></div>
         </div>
         <p style="font-size:12px;color:var(--text-sub);margin:8px 0 4px;">누적 암기 (일별 · 최근 7일)</p>
         <svg id="analysis-chart" class="analysis-chart" viewBox="0 0 320 160" preserveAspectRatio="xMidYMid meet"></svg>
@@ -444,7 +506,7 @@
     <div id="screen-quiz" class="screen hidden" style="padding:16px;overflow-y:auto;">
         <div class="quiz-topbar">
             <button type="button" class="quiz-furi-btn" id="quiz-furi-btn" onclick="toggleQuizFuri()">후리가나</button>
-            <button type="button" class="back" onclick="exitQuiz()">← 홈</button>
+            <button type="button" class="quiz-home-btn" onclick="exitQuiz()"><span class="nav-back-ico"></span><span>홈</span></button>
         </div>
         <div class="quiz-box">
             <p style="text-align:center;font-size:12px;color:var(--text-sub);">뜻을 입력하세요 (한국어)</p>
@@ -475,8 +537,22 @@
 
 <script>
 (function(){
+    var SVG = {
+        chevronLeft: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
+        chevronRight: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+        chevronRightSm: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+        x: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+        volume: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
+        bookmark: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+        bookOpen: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+        zap: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>',
+        layers: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 11.65-9.17 4.16a2 2 0 0 1-1.66 0L2 11.65"/><path d="m22 16.65-9.17 4.16a2 2 0 0 1-1.66 0L2 16.65"/></svg>',
+        helpCircle: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>',
+        barChart: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>',
+        settings: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>'
+    };
     const STORAGE_KEY = 'jlpt_pro_save_v4';
-    /** 단어 카드 이미지: Wikimedia Commons 검색(의미 관련) → 실패 시 Picsum 시드(빠른 장식용) */
+    /** 단어 카드 장면 이미지: Pollinations.ai (키 불필요, 무료 구간은 요청 간격 제한 있음) */
 
     let state = {
         phase:'onboarding', isTutorial:true, tutIdx:0, theme:'', currentLvl:'', targetLvl:'', examDate:'', dailyGoal:20,
@@ -681,7 +757,17 @@
         });
     }
 
+    function wireStaticIcons(){
+        document.querySelectorAll('.nav-back-ico').forEach(function(el){ el.innerHTML = SVG.chevronLeft; });
+        document.querySelectorAll('.nav-x-ico').forEach(function(el){ el.innerHTML = SVG.x; });
+        document.querySelectorAll('.fc-vol-ico').forEach(function(el){ el.innerHTML = SVG.volume; });
+        document.querySelectorAll('.fc-next-ico').forEach(function(el){ el.innerHTML = SVG.chevronRight; });
+        var fabBtns = document.querySelectorAll('.fab-ic-btn');
+        var fabSvg = [SVG.bookOpen, SVG.barChart, SVG.settings];
+        for(var fi=0; fi<fabBtns.length && fi<fabSvg.length; fi++) fabBtns[fi].innerHTML = fabSvg[fi];
+    }
     function init(){
+        wireStaticIcons();
         loadState();
         fetch('jlpt_n3_expanded.json').then(function(r){ return r.json();         }).then(function(data){
             state.db = data;
@@ -770,18 +856,18 @@
             '<div class="swipe-overlay left"><h2 style="font-size:18px;">아는 단어</h2><p style="font-size:13px;">라이브러리에 넣을게요</p></div>'+
             '<div class="swipe-overlay right"><h2 style="font-size:18px;">학습할 단어</h2><p style="font-size:13px;">플래시카드에서 만나요</p></div>'+
             '<div class="c-img" id="cimg-'+word.id+'"></div>'+
-            '<div class="c-bookmark'+(bm?' active':'')+'" data-bid="'+word.id+'">🔖</div>'+
+            '<div class="c-bookmark'+(bm?' active':'')+'" data-bid="'+word.id+'" role="button" tabindex="0" aria-label="북마크">'+SVG.bookmark+'</div>'+
             '<div class="c-lvl">'+escapeHtml(word.level)+'</div>'+
             '<div class="c-body">'+
             '<div class="c-furi">'+escapeHtml(word.furigana)+'</div>'+
-            '<div class="c-kanji">'+escapeHtml(word.kanji)+' <span class="tts-w" data-t="'+escapeAttr(word.kanji)+'">🔊</span></div>'+
+            '<div class="c-kanji">'+escapeHtml(word.kanji)+' <span class="tts-w" data-t="'+escapeAttr(word.kanji)+'" title="발음">'+SVG.volume+'</span></div>'+
             '<div class="c-meaning">'+escapeHtml(word.meaning)+'</div>'+
             '<div class="c-pos">['+escapeHtml(word.pos)+']</div>'+
-            '<div class="c-ex"><p style="font-family:\'Noto Sans JP\';margin:0 0 6px;">'+applyRuby(word.example_jp, word.alt_spellings)+
-            ' <span class="tts-e" data-t="'+escapeAttr(word.example_jp)+'">🔊</span></p>'+
+            '<div class="c-ex"><p style="font-family:\'Noto Sans JP\';margin:0 0 6px;display:flex;align-items:flex-start;flex-wrap:wrap;gap:4px;">'+applyRuby(word.example_jp, word.alt_spellings)+
+            ' <span class="tts-e" data-t="'+escapeAttr(word.example_jp)+'" title="발음">'+SVG.volume+'</span></p>'+
             '<p style="font-size:11px;color:var(--text-sub);margin:0;">'+escapeHtml(word.example_kr)+'</p></div></div>'+
             '<div style="padding:10px 12px 12px;text-align:right;">'+
-            '<button type="button" style="padding:8px 12px;border-radius:10px;font-size:11px;background:#eee;color:#333;font-weight:800;" data-tip="'+word.id+'">팁 💡</button></div>';
+            '<button type="button" class="btn-tip" data-tip="'+word.id+'">팁 '+SVG.chevronRightSm+'</button></div>';
         zone.appendChild(card);
         setImgPlaceholder(card.querySelector('#cimg-'+word.id), word);
         card.querySelector('.c-bookmark').addEventListener('click', function(e){ e.stopPropagation(); toggleBm(word.id,this); });
@@ -835,7 +921,7 @@
             return '<div style="background:#f5f5f7;padding:12px;border-radius:14px;">'+
                 '<p style="font-size:10px;color:var(--accent);font-weight:800;">['+escapeHtml(t.pos||'')+'] '+escapeHtml(t.furigana||'')+'</p>'+
                 '<div style="display:flex;justify-content:space-between;"><b style="font-family:\'Noto Sans JP\';">'+escapeHtml(t.kanji)+'</b>'+
-                '<span class="tip-tts" data-t="'+escapeAttr(t.kanji)+'">🔊</span></div>'+
+                '<span class="tip-tts" data-t="'+escapeAttr(t.kanji)+'">'+SVG.volume+'</span></div>'+
                 '<p style="font-weight:700;margin-top:4px;font-size:14px;">'+escapeHtml(t.meaning)+'</p></div>';
         }).join('');
         content.querySelectorAll('.tip-tts').forEach(function(el){
@@ -963,20 +1049,20 @@
         var mod = document.getElementById('home-modules');
         mod.innerHTML =
             '<div class="mod-card">'+
-            '<h3>⚡ 스키밍</h3>'+
+            '<h3><span class="mod-ico" aria-hidden="true">'+SVG.zap+'</span>스키밍</h3>'+
             '<div class="h-gauge"><i style="width:'+skimPct+'%"></i></div>'+
             '<div class="mod-status '+(skimDone?'done':'ing')+'">'+(skimDone?'완료':'진행중')+' · 학습할게요 '+skimCnt+' / '+dg+'</div>'+
             '<button type="button" class="btn-go" '+(skimDone?'disabled':'')+' onclick="startSkimmingFromGate()">바로 시작</button>'+
             '<button type="button" class="btn-sub" id="btn-word-view" '+(skimDone?'':'disabled')+' onclick="openWordView()">단어 보기</button></div>'+
 
             '<div class="mod-card">'+
-            '<h3>🃏 플래시카드</h3>'+
+            '<h3><span class="mod-ico" aria-hidden="true">'+SVG.layers+'</span>플래시카드</h3>'+
             '<div class="h-gauge"><i style="width:'+(fcDone?100:fcPct)+'%"></i></div>'+
             '<div class="mod-status '+(fcDone?'done':'ing')+'">'+(fcDone?'완료':'진행중')+' · 대기 '+state.learnQueue.length+'개</div>'+
             '<button type="button" class="btn-go" onclick="openFlashFromGate()">바로 시작</button></div>'+
 
             '<div class="mod-card">'+
-            '<h3>❓ 퀴즈</h3>'+
+            '<h3><span class="mod-ico" aria-hidden="true">'+SVG.helpCircle+'</span>퀴즈</h3>'+
             '<div class="h-gauge"><i style="width:'+quizPct+'%"></i></div>'+
             '<div class="mod-status '+(quizDone?'done':'ing')+'">'+(quizDone?'완료':'진행중')+'</div>'+
             '<button type="button" class="btn-go" onclick="openQuizScreen()">바로 시작</button></div>';
@@ -1262,7 +1348,7 @@
         var bmOn = state.bookmarks.indexOf(w.id) >= 0;
         row.innerHTML = '<div class="vr-img"></div>'+
             '<div class="vr-mid"><div class="k">'+(hw?'••••':escapeHtml(w.kanji))+'</div>'+
-            '<div class="m">'+(hm?'••••••':escapeHtml(w.meaning))+'</div></div><div class="vr-bm" data-bid="'+w.id+'">'+(bmOn?'🔖':'📌')+'</div>';
+            '<div class="m">'+(hm?'••••••':escapeHtml(w.meaning))+'</div></div><div class="vr-bm'+(bmOn?' active':'')+'" data-bid="'+w.id+'" aria-label="북마크">'+SVG.bookmark+'</div>';
         setImgPlaceholder(row.querySelector('.vr-img'), w);
         row.querySelector('.vr-bm').addEventListener('click', function(){
             toggleBm(w.id, this);
@@ -1393,7 +1479,7 @@
             '<div class="vr-img"></div>'+
             '<div class="vr-mid"><div class="k">'+(hideW?'████':escapeHtml(w.kanji))+'</div>'+
             '<div class="m">'+(hideM?'••••••':escapeHtml(w.meaning))+'</div></div>'+
-            '<div class="vr-bm" data-bid="'+w.id+'">'+(bmOn?'🔖':'📌')+'</div>';
+            '<div class="vr-bm'+(bmOn?' active':'')+'" data-bid="'+w.id+'" aria-label="북마크">'+SVG.bookmark+'</div>';
         setImgPlaceholder(row.querySelector('.vr-img'), w);
         row.querySelector('.vr-img').addEventListener('click', function(e){ e.stopPropagation(); openLearnCard(w.id); });
         row.querySelector('.vr-bm').addEventListener('click', function(e){ e.stopPropagation(); toggleBm(w.id, this); save(); if(!isPack) renderLibVault(); else renderLibPack(); });
@@ -1410,8 +1496,9 @@
 
     window.toggleBm = function(id, el){
         var i = state.bookmarks.indexOf(id);
-        if(i>=0){ state.bookmarks.splice(i,1); el.textContent='📌'; }
-        else { state.bookmarks.push(id); el.textContent='🔖'; }
+        if(i>=0){ state.bookmarks.splice(i,1); el.classList.remove('active'); }
+        else { state.bookmarks.push(id); el.classList.add('active'); }
+        el.innerHTML = SVG.bookmark;
         save();
     };
 
