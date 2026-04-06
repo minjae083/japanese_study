@@ -476,21 +476,7 @@
 <script>
 (function(){
     const STORAGE_KEY = 'jlpt_pro_save_v4';
-    /**
-     * 단어 카드 이미지: 'pollinations' = Pollinations.ai (무료·키 불필요, 품질·속도는 상용보다 낮을 수 있음, 익명 시 약 15초당 1요청 제한)
-     * 'gemini' = Google Nano Banana/Imagen (유료·할당량 필요)
-     */
-    const VOCAB_IMAGE_SOURCE = 'pollinations';
-    /** Google AI Studio 키 — VOCAB_IMAGE_SOURCE 가 'gemini' 일 때만 사용 */
-    const GEMINI_API_KEY = 'AIzaSyAedOCGyMwKF16fp65EKc_H0Qc-YlEqxxY';
-    /** Nano Banana 계열(2.5 stable → 3.1 프리뷰). 무료 티어는 이미지 한도가 0인 경우가 많음 → 유료 필요 */
-    const GEMINI_IMAGE_MODELS = [
-        'gemini-2.5-flash-image',
-        'gemini-3.1-flash-image-preview'
-    ];
-    /** generateContent 403 시 폴백 (같은 키·Imagen 권한 필요) */
-    const GEMINI_IMAGEN_MODELS = ['imagen-4.0-fast-generate-001','imagen-4.0-generate-001'];
-    var lastVocabImageError = '';
+    /** 단어 카드 장면 이미지: Pollinations.ai (키 불필요, 무료 구간은 요청 간격 제한 있음) */
 
     let state = {
         phase:'onboarding', isTutorial:true, tutIdx:0, theme:'', currentLvl:'', targetLvl:'', examDate:'', dailyGoal:20,
@@ -503,7 +489,7 @@
         skimRightByDate:{}, skimLeftByDate:{},
         totalSkimMs:0, skimCardsShown:0, skimOpenDates:{},
         totalFcMs:0, fcCardsDone:0, fcOpenDates:{},
-        imgPipelineVer:14
+        imgPipelineVer:15
     };
     let skimSessionStart = 0;
     let wgFilter = 'all';
@@ -525,9 +511,9 @@
                 if(o[k]!==undefined && k!=='db') state[k]=o[k];
             });
             if(!state.imgCache) state.imgCache = {};
-            if(!state.imgPipelineVer || state.imgPipelineVer < 14){
+            if(!state.imgPipelineVer || state.imgPipelineVer < 15){
                 state.imgCache = {};
-                state.imgPipelineVer = 14;
+                state.imgPipelineVer = 15;
             }
         } catch(e){ console.warn(e); }
     }
@@ -640,36 +626,6 @@
         s = s.replace(/^(to|a|an|the)\s+/i,'').trim();
         return s.length>80 ? s.slice(0,80) : s;
     }
-    function buildGeminiImagePrompt(w){
-        var en = primaryEnglishMeaning(w) || 'the vocabulary concept';
-        var kr = w.meaning ? String(w.meaning).split(/[,;]/)[0].trim() : '';
-        var jpEx = w.example_jp ? String(w.example_jp).replace(/\s+/g,' ').trim() : '';
-        var krEx = w.example_kr ? String(w.example_kr).trim() : '';
-        var realism = state.theme === 'realism';
-        var neg = 'Do NOT output: app icon, emoji, sticker, chibi mascot, isometric 3D miniature, clay toy, plain white background with one tiny object, corporate flat pictogram, stock collage. ';
-        if(realism){
-            var rs = jpEx ? ('Illustrate this situation as a real photograph: '+jpEx.slice(0,130)+'. ') : (krEx ? ('Situation: '+krEx.slice(0,90)+'. ') : '');
-            return (rs+'Cinematic photorealistic editorial photo, natural light, depth of field, emotional storytelling, full frame. '+
-                'Word: '+(w.kanji||'')+' ('+(w.furigana||'')+'). English: '+en+'. Korean: '+kr+'. No text in image. '+neg).slice(0,950);
-        }
-        var sceneCore = '';
-        if(jpEx){
-            sceneCore = 'Turn this Japanese example sentence into ONE full illustrated scene (show characters, setting, action, mood): «'+jpEx.slice(0,150)+'». ';
-        } else if(krEx){
-            sceneCore = 'Illustrate this meaning as one narrative scene: '+krEx.slice(0,100)+'. ';
-        } else {
-            sceneCore = 'Illustrate the abstract meaning with a concrete visual metaphor: '+en+'. ';
-        }
-        return (sceneCore+
-            'Full illustration art like a high-budget Japanese anime film key visual or storyboard panel: wide or medium shot, rich detail, '+
-            'painterly anime background, expressive lighting, cohesive composition, emotional atmosphere matching the word. '+
-            'Style: theatrical 2D anime illustration with soft watercolor-like shading and film-like color grading; '+
-            'Ghibli-inspired pastoral or everyday drama mood when it fits (no need to copy any specific film). '+
-            neg+
-            'Vocabulary: '+(w.kanji||'')+' ('+(w.furigana||'')+'). English gloss: '+en+'. Korean gloss: '+kr+'. '+
-            'No readable text, letters, captions, logos, or watermarks in the picture.'
-        ).slice(0,950);
-    }
     function hashWordIdToSeed(id){
         var s = String(id);
         var h = 0;
@@ -692,168 +648,14 @@
         var q = 'width=896&height=672&model=flux&seed='+seed+'&enhance=true';
         return 'https://image.pollinations.ai/prompt/'+encodeURIComponent(prompt)+'?'+q;
     }
-    function geminiApiHeaders(){
-        return {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': GEMINI_API_KEY
-        };
-    }
-    /** 공식 REST 예시와 동일한 최소 본문(일부 이미지 전용 모델은 이것만으로 동작) */
-    function geminiMinimalImageBody(prompt){
-        return {
-            contents: [ { parts: [ { text: prompt } ] } ]
-        };
-    }
-    function geminiUrlWithKey(baseUrl, useQueryKey){
-        if(!useQueryKey || !GEMINI_API_KEY) return baseUrl;
-        var sep = baseUrl.indexOf('?') >= 0 ? '&' : '?';
-        return baseUrl + sep + 'key=' + encodeURIComponent(GEMINI_API_KEY);
-    }
-    async function geminiFetchPostJson(url, jsonBody){
-        var res = await fetch(url, {
-            method: 'POST',
-            headers: geminiApiHeaders(),
-            body: JSON.stringify(jsonBody)
-        });
-        if(res.status === 403 && GEMINI_API_KEY){
-            res = await fetch(geminiUrlWithKey(url, true), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(jsonBody)
-            });
-        }
-        return res;
-    }
-    function logApiError(ctx, status, j){
-        var msg = (j && j.error && j.error.message) ? j.error.message : JSON.stringify(j||'');
-        try { console.warn(ctx, 'HTTP', status, msg, j); } catch(z){}
-        if(status === 403){
-            lastVocabImageError = '403 Forbidden: '+msg;
-        } else if(status === 429){
-            lastVocabImageError = '429 Too Many Requests: '+msg;
-        } else if(status === 400 && msg && (msg.indexOf('paid')>=0 || msg.indexOf('Paid')>=0 || msg.indexOf('upgrade')>=0)){
-            lastVocabImageError = '400 paid plan required: '+msg;
-        }
-    }
-    function dataUrlFromImagenPredict(j){
-        if(!j || !j.predictions || !j.predictions.length) return null;
-        var p = j.predictions[0];
-        var b64 = p.bytesBase64Encoded || (p.image && p.image.imageBytes);
-        if(!b64) return null;
-        var mime = p.mimeType || 'image/png';
-        return 'data:'+mime+';base64,'+b64;
-    }
-    async function imagenPredictDataUrl(prompt){
-        for(var i=0;i<GEMINI_IMAGEN_MODELS.length;i++){
-            var model = GEMINI_IMAGEN_MODELS[i];
-            var url = 'https://generativelanguage.googleapis.com/v1beta/models/'+model+':predict';
-            var body = {
-                instances: [ { prompt: prompt } ],
-                parameters: { sampleCount: 1, aspectRatio: '4:3', personGeneration: 'allow_adult' }
-            };
-            try {
-                var res = await geminiFetchPostJson(url, body);
-                var j = await res.json().catch(function(){ return null; });
-                if(!res.ok){
-                    logApiError('[Imagen predict]', res.status, j);
-                    if(res.status === 400 && j && j.error && j.error.message && j.error.message.indexOf('paid')>=0){
-                        return null;
-                    }
-                    continue;
-                }
-                var d = dataUrlFromImagenPredict(j);
-                if(d) return d;
-            } catch(e){
-                try { console.warn('[Imagen predict]', model, e); } catch(z){}
-            }
-        }
-        return null;
-    }
-    function dataUrlFromGenerateContent(j){
-        if(!j || !j.candidates || !j.candidates.length) return null;
-        var c0 = j.candidates[0];
-        if(c0.finishReason && c0.finishReason !== 'STOP'){
-            try { console.warn('[Gemini Image] finishReason', c0.finishReason, c0); } catch(z){}
-        }
-        var parts = c0.content && c0.content.parts;
-        if(!parts){
-            try { console.warn('[Gemini Image] 응답에 parts 없음', j); } catch(z){}
-            return null;
-        }
-        for(var i=0;i<parts.length;i++){
-            var p = parts[i];
-            var id = p.inlineData || p.inline_data;
-            if(id && id.data){
-                var mime = id.mimeType || id.mime_type || 'image/png';
-                return 'data:'+mime+';base64,'+id.data;
-            }
-        }
-        try { console.warn('[Gemini Image] 이미지 바이너리 없음, parts=', parts); } catch(z){}
-        return null;
-    }
-    function geminiMakeBody(prompt, modalities, imageSize){
-        return {
-            contents: [ { role: 'user', parts: [ { text: prompt } ] } ],
-            generationConfig: {
-                responseModalities: modalities,
-                imageConfig: { aspectRatio: '4:3', imageSize: imageSize || '1K' }
-            }
-        };
-    }
-    async function geminiNativeImageDataUrl(w){
-        if(!GEMINI_API_KEY) return null;
-        lastVocabImageError = '';
-        var prompt = buildGeminiImagePrompt(w);
-        if(prompt.length>950) prompt = prompt.slice(0,950);
-        var primaryBody = geminiMakeBody(prompt, ['TEXT','IMAGE'], '1K');
-        var minimalBody = geminiMinimalImageBody(prompt);
-        for(var mi=0; mi<GEMINI_IMAGE_MODELS.length; mi++){
-            var model = GEMINI_IMAGE_MODELS[mi];
-            var url = 'https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent';
-            var bodies = [primaryBody, minimalBody];
-            for(var bi=0; bi<bodies.length; bi++){
-                try {
-                    var res = await geminiFetchPostJson(url, bodies[bi]);
-                    var j = await res.json().catch(function(){ return null; });
-                    if(!res.ok){
-                        logApiError('[Gemini Image] '+model+(bi?' minimal':''), res.status, j);
-                        if(res.status === 429 || res.status === 403){
-                            return null;
-                        }
-                        if(res.status === 404){
-                            break;
-                        }
-                        continue;
-                    }
-                    var d = dataUrlFromGenerateContent(j);
-                    if(d) return d;
-                    if(j && j.promptFeedback){
-                        try { console.warn('[Gemini Image] promptFeedback', j.promptFeedback); } catch(z){}
-                    }
-                } catch(e){
-                    try { console.warn('[Gemini Image] fetch', model, e); } catch(z){}
-                }
-            }
-        }
-        var im = await imagenPredictDataUrl(prompt);
-        if(im) return im;
-        return null;
-    }
     async function loadWordImageUrl(w){
         if(state.imgCache[w.id]) return state.imgCache[w.id];
         try {
-            if(VOCAB_IMAGE_SOURCE === 'pollinations'){
-                lastVocabImageError = '';
-                var pu = pollinationsImageUrl(w);
-                state.imgCache[w.id]=pu; save();
-                return pu;
-            }
-            var gem = await geminiNativeImageDataUrl(w);
-            if(gem){
-                state.imgCache[w.id]=gem; save(); return gem;
-            }
+            var pu = pollinationsImageUrl(w);
+            state.imgCache[w.id]=pu; save();
+            return pu;
         } catch(e){
-            try { console.warn('[Gemini]', e); } catch(z){}
+            try { console.warn('[Pollinations]', e); } catch(z){}
         }
         return null;
     }
@@ -862,17 +664,7 @@
         el.innerHTML = '<div class="ph-loading"><div class="ph-spinner"></div><span>장면 일러스트 불러오는 중…</span></div>';
         loadWordImageUrl(w).then(function(u){
             if(!u){
-                var hint = '이미지 생성에 실패했습니다. F12 콘솔의 [Gemini Image] / [Imagen predict] 로그를 확인하세요.';
-                if(lastVocabImageError){
-                    if(lastVocabImageError.indexOf('429')>=0){
-                        hint = '429: 무료 티어에서 이미지 생성(Nano Banana 등) 할당량이 0이거나 한도를 초과했습니다. Google AI Studio(ai.google.dev)에서 프로젝트에 결제·유료 사용을 켜면 이미지 API가 열리는 경우가 많습니다. 잠시 후 재시도 메시지가 있으면 그만큼 기다린 뒤 다시 시도하세요.';
-                    } else if(lastVocabImageError.indexOf('400 paid')>=0 || (lastVocabImageError.indexOf('paid')>=0 && lastVocabImageError.indexOf('400')>=0)){
-                        hint = 'Imagen 등은 유료 플랜에서만 사용할 수 있습니다. Gemini 이미지 모델만 쓰려면 위 429 안내(결제·할당량)를 확인하세요.';
-                    } else if(lastVocabImageError.indexOf('403')>=0){
-                        hint = '403: file:// 로 열면 리퍼러가 없어 키 제한과 맞지 않을 수 있습니다. python -m http.server 로 http://localhost 에서 열고, Cloud Console → API 키에 http://localhost/* 허용 또는 테스트 시 제한 없음을 검토하세요.';
-                    }
-                }
-                el.innerHTML = '<div class="ph-loading"><span style="font-size:11px;line-height:1.45;">'+hint+'</span></div>';
+                el.innerHTML = '<div class="ph-loading"><span style="font-size:11px;line-height:1.45;">이미지 주소를 만들지 못했습니다.</span></div>';
                 return;
             }
             var img = document.createElement('img');
@@ -880,11 +672,7 @@
             img.alt = '';
             img.onerror = function(){
                 this.onerror=null;
-                var poll = u.indexOf('pollinations')>=0;
-                el.innerHTML = '<div class="ph-loading"><span style="font-size:11px;line-height:1.45;">'+
-                    (poll
-                        ? 'Pollinations 무료는 IP당 약 15초에 1장 제한이 있을 수 있습니다. 잠시 뒤 다시 열거나, 다른 카드부터 학습해 보세요.'
-                        : '이미지 표시 오류')+'</span></div>';
+                el.innerHTML = '<div class="ph-loading"><span style="font-size:11px;line-height:1.45;">Pollinations에서 이미지를 불러오지 못했습니다. 무료 구간은 약 15초에 1장 제한이 있을 수 있으니 잠시 뒤 다시 시도해 보세요.</span></div>';
             };
             el.innerHTML = '';
             el.appendChild(img);
