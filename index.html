@@ -303,11 +303,7 @@
         <p style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">시험 일자</p>
         <input type="date" id="goal-date" onchange="checkGoalReady()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:12px;">
         <p style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">하루 학습 단어 수</p>
-        <input type="number" id="goal-count" min="1" placeholder="예: 20" oninput="checkGoalReady()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:12px;">
-        <p style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">AI 이미지 (선택) · Nano Bnana 키</p>
-        <input type="password" id="nanobnana-key" autocomplete="off" placeholder="nanobnana.com → API Keys 에서 발급" onblur="saveNanoApiKey()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:8px;font-size:13px;">
-        <p style="font-size:11px;color:var(--text-sub);margin-bottom:4px;line-height:1.45;">브라우저는 보통 Nano 서버에 직접 연결을 막습니다(CORS). 아래에 로컬 프록시 주소를 넣거나, 키 없이도 의미 기반 이미지(Pollinations)가 쓰입니다.</p>
-        <input type="url" id="nano-proxy-base" autocomplete="off" placeholder="(선택) http://127.0.0.1:3456 — nano-proxy.mjs 실행 시" onblur="saveNanoApiKey()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:18px;font-size:12px;">
+        <input type="number" id="goal-count" min="1" placeholder="예: 20" oninput="checkGoalReady()" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:18px;">
         <p id="goal-hint" style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:10px;display:none;"></p>
         <button type="button" id="btn-goal-complete" class="btn-primary" disabled onclick="completeGoal()">설정 완료 및 시작</button>
     </div>
@@ -478,6 +474,9 @@
 (function(){
     const STORAGE_KEY = 'jlpt_pro_save_v4';
     const EMOJIS = ['🌸','🏯','🌊','🌙','🍱','🏮','⛩️','🗻'];
+    /** Google AI Studio / Gemini API 키 (클라이언트에 노출됨 — 유출 시 콘솔에서 재발급 권장) */
+    const GEMINI_API_KEY = 'AIzaSyDuA2d0M8tjg9O8RbGc54hTf7WjQ4gaaqo';
+    const GEMINI_IMAGEN_MODEL = 'imagen-4.0-fast-generate-001';
 
     let state = {
         phase:'onboarding', isTutorial:true, tutIdx:0, theme:'', currentLvl:'', targetLvl:'', examDate:'', dailyGoal:20,
@@ -490,7 +489,7 @@
         skimRightByDate:{}, skimLeftByDate:{},
         totalSkimMs:0, skimCardsShown:0, skimOpenDates:{},
         totalFcMs:0, fcCardsDone:0, fcOpenDates:{},
-        imgPipelineVer:6
+        imgPipelineVer:7
     };
     let skimSessionStart = 0;
     let wgFilter = 'all';
@@ -512,9 +511,9 @@
                 if(o[k]!==undefined && k!=='db') state[k]=o[k];
             });
             if(!state.imgCache) state.imgCache = {};
-            if(!state.imgPipelineVer || state.imgPipelineVer < 6){
+            if(!state.imgPipelineVer || state.imgPipelineVer < 7){
                 state.imgCache = {};
-                state.imgPipelineVer = 6;
+                state.imgPipelineVer = 7;
             }
         } catch(e){ console.warn(e); }
     }
@@ -630,88 +629,73 @@
         s = s.replace(/^(to|a|an|the)\s+/i,'').trim();
         return s.length>80 ? s.slice(0,80) : s;
     }
-    function buildNanoPrompt(w){
+    function buildGeminiImagePrompt(w){
         var en = primaryEnglishMeaning(w);
         var kr = w.meaning ? String(w.meaning).split(/[,;]/)[0].trim() : '';
-        var exHint = '';
-        if(w.example_kr) exHint = ' Example situation (Korean): '+String(w.example_kr).slice(0,55)+'.';
-        else if(w.example_jp) exHint = ' Example: '+String(w.example_jp).replace(/\s+/g,' ').slice(0,45)+'.';
-        var core = en || kr || (w.kanji || '') || 'vocabulary concept';
+        var ex = '';
+        if(w.example_kr) ex = ' Example scene: '+String(w.example_kr).slice(0,50)+'.';
+        else if(w.example_jp) ex = ' Example: '+String(w.example_jp).replace(/\s+/g,' ').slice(0,40)+'.';
         var realism = state.theme === 'realism';
         if(realism){
-            return 'Photorealistic editorial photograph, natural light, no text overlay, no watermark, literal depiction of: '+core.slice(0,320)+
-                (kr ? ' Korean gloss: '+kr.slice(0,40)+'.' : '')+exHint;
+            return ('Photorealistic editorial photo, natural light, no text, no watermark. Depict the meaning of Japanese «'+
+                (w.kanji||'')+'» ('+(w.furigana||'')+'): '+en+'. Korean: '+kr+'.'+ex).slice(0,900);
         }
-        return 'Soft anime illustration, warm pastel colors, one clear subject, no text no letters, depicting the meaning of Japanese word «'+
-            (w.kanji||'')+'»: '+core.slice(0,260)+(kr ? '; Korean: '+kr.slice(0,40) : '')+'.'+exHint;
+        return ('Japanese vocabulary flashcard art. Soft anime illustration, Ghibli-inspired gentle colors and lighting, '+
+            'one clear focal subject, no letters or readable text in the picture. Word: '+ (w.kanji||'')+' ('+(w.furigana||'')+'). '+
+            'English meaning: '+en+'. Korean meaning: '+kr+'.'+ex).slice(0,900);
     }
     function pollinationsImageUrl(w){
-        var prompt = buildNanoPrompt(w);
+        var prompt = buildGeminiImagePrompt(w);
         if(prompt.length>900) prompt = prompt.slice(0,900);
         return 'https://image.pollinations.ai/prompt/'+encodeURIComponent(prompt)+
             '?width=480&height=320&seed='+w.id+'&nologo=true';
     }
-    function nanoApiBase(){
-        var b = localStorage.getItem('nano_proxy_base')||'';
-        b = String(b).trim().replace(/\/$/,'');
-        return b || 'https://nanobnana.com';
+    function dataUrlFromImagenResponse(j){
+        if(!j) return null;
+        var preds = j.predictions || j.generatedImages;
+        if(!preds || !preds.length) return null;
+        var first = preds[0];
+        var b64 = first.bytesBase64Encoded || (first.image && first.image.imageBytes) ||
+            (first.imageBytes) || (first.bytes);
+        var mime = first.mimeType || (first.image && first.image.mimeType) || 'image/png';
+        if(!b64) return null;
+        return 'data:'+mime+';base64,'+b64;
     }
-    async function nanoGenerateImageUrl(w, apiKey){
-        var prompt = buildNanoPrompt(w);
+    async function geminiImagenDataUrl(w){
+        if(!GEMINI_API_KEY) return null;
+        var prompt = buildGeminiImagePrompt(w);
         if(prompt.length>950) prompt = prompt.slice(0,950);
-        var base = nanoApiBase();
-        var genRes = await fetch(base+'/api/v2/generate', {
+        var url = 'https://generativelanguage.googleapis.com/v1beta/models/'+GEMINI_IMAGEN_MODEL+
+            ':predict?key='+encodeURIComponent(GEMINI_API_KEY);
+        var body = {
+            instances: [ { prompt: prompt } ],
+            parameters: { sampleCount: 1, aspectRatio: '4:3', personGeneration: 'allow_adult' }
+        };
+        var res = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer '+apiKey },
-            body: JSON.stringify({ prompt: prompt, aspect_ratio: '4:3', size: '1K', format: 'png' })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
         });
-        if(!genRes.ok){
-            try { console.warn('[Nano] generate HTTP', genRes.status); } catch(z){}
+        var j = await res.json().catch(function(){ return null; });
+        if(!res.ok){
+            try { console.warn('[Gemini Imagen]', res.status, j); } catch(z){}
             return null;
         }
-        var genJson = await genRes.json();
-        if(!genJson || genJson.code !== 200 || !genJson.data || !genJson.data.task_id){
-            try { console.warn('[Nano] generate body', genJson); } catch(z){}
-            return null;
+        var d = dataUrlFromImagenResponse(j);
+        if(!d && j && j.error){
+            try { console.warn('[Gemini Imagen] error field', j.error); } catch(z){}
         }
-        var taskId = genJson.data.task_id;
-        for(var poll=0; poll<45; poll++){
-            await new Promise(function(r){ setTimeout(r, poll===0 ? 2500 : 2000); });
-            var stUrl = base+'/api/v2/status?task_id='+encodeURIComponent(taskId);
-            var stRes = await fetch(stUrl, { headers: { 'Authorization': 'Bearer '+apiKey } });
-            if(stRes.status === 401){
-                stRes = await fetch(stUrl);
-            }
-            if(!stRes.ok) continue;
-            var stJson = await stRes.json();
-            if(!stJson || stJson.code !== 200 || !stJson.data) continue;
-            var d = stJson.data;
-            if(d.status === 1 && d.response){
-                try {
-                    var urls = JSON.parse(d.response);
-                    if(Array.isArray(urls) && urls.length && urls[0]) return urls[0];
-                } catch(e){}
-            }
-            if(d.status === -1){
-                try { console.warn('[Nano] task failed', d.error_message); } catch(z){}
-                return null;
-            }
-        }
-        try { console.warn('[Nano] polling timeout'); } catch(z){}
-        return null;
+        return d;
     }
     async function loadWordImageUrl(w){
         if(state.imgCache[w.id]) return state.imgCache[w.id];
-        var apiKey = localStorage.getItem('nanobnana_api_key');
-        if(apiKey){
-            try {
-                var nanoUrl = await nanoGenerateImageUrl(w, apiKey);
-                if(nanoUrl){
-                    state.imgCache[w.id]=nanoUrl; save(); return nanoUrl;
-                }
-            } catch(e){
-                try { console.warn('[Nano] fetch blocked or failed (often CORS). Use local proxy or rely on Pollinations.', e); } catch(z){}
+        try {
+            var gem = await geminiImagenDataUrl(w);
+            if(gem){
+                state.imgCache[w.id]=gem; save(); return gem;
             }
+        } catch(e){
+            try { console.warn('[Gemini]', e); } catch(z){}
         }
         var pollUrl = pollinationsImageUrl(w);
         state.imgCache[w.id]=pollUrl; save(); return pollUrl;
@@ -939,15 +923,6 @@
         showScreen('report');
     }
 
-    window.saveNanoApiKey = function(){
-        var el = document.getElementById('nanobnana-key');
-        if(el) localStorage.setItem('nanobnana_api_key', el.value.trim());
-        var px = document.getElementById('nano-proxy-base');
-        if(px) localStorage.setItem('nano_proxy_base', px.value.trim().replace(/\/$/,''));
-        state.imgCache = {};
-        state.imgPipelineVer = 6;
-        save();
-    };
     window.showGoalSetting = function(from){
         state.goalSettingsMode = !!from;
         document.getElementById('goal-title').textContent = from ? '설정 ⚙️' : '목표 설정하기 🎯';
@@ -955,10 +930,6 @@
         document.querySelectorAll('[data-g="target"]').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-v')===state.targetLvl); });
         document.getElementById('goal-date').value = state.examDate||'';
         document.getElementById('goal-count').value = state.dailyGoal||'';
-        var nk = document.getElementById('nanobnana-key');
-        if(nk) nk.value = localStorage.getItem('nanobnana_api_key')||'';
-        var nxp = document.getElementById('nano-proxy-base');
-        if(nxp) nxp.value = localStorage.getItem('nano_proxy_base')||'';
         checkGoalReady();
         showScreen('goal');
     };
@@ -984,10 +955,6 @@
     window.completeGoal = function(){
         state.examDate = document.getElementById('goal-date').value;
         state.dailyGoal = parseInt(document.getElementById('goal-count').value,10);
-        var nk = document.getElementById('nanobnana-key');
-        if(nk) localStorage.setItem('nanobnana_api_key', nk.value.trim());
-        var nxp = document.getElementById('nano-proxy-base');
-        if(nxp) localStorage.setItem('nano_proxy_base', nxp.value.trim().replace(/\/$/,''));
         state.phase='main';
         save();
         fillJlptSelect();
