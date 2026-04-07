@@ -160,6 +160,9 @@
         .tts-w:active, .tts-e:active { background:#e4e6ea; }
         .tts-w svg, .tts-e svg { width:18px; height:18px; }
         .c-ex { background:#f6f7f9; padding:12px; border-radius:14px; text-align:left; margin-top:10px; border-left:3px solid rgba(0,0,0,.12); font-size:13px; line-height:1.55; word-break:break-word; }
+        .c-ex ruby { ruby-position: over; }
+        .c-ex ruby rt { font-size:0.5em; letter-spacing:0; }
+        .c-ex .tts-e { margin-left:8px; }
         .btn-tip {
             padding:8px 14px; border-radius:999px; font-size:11px; font-family:var(--font-ui); font-weight:700;
             background:linear-gradient(135deg,#f3f0ff,#ede9fe); color:#5b4d9a; border:1px solid rgba(91,77,154,.18);
@@ -883,8 +886,10 @@
         if(!text) return '';
         if(!alts||!alts.length) return String(text).replace(/</g,'&lt;');
         let html = text;
+        // 한자가 있는 단어에만 루비를 적용해, 히라가나 위 루비를 막는다.
+        const hasKanji = /[\u4E00-\u9FFF々〆ヵヶ]/;
         alts.slice().sort(function(a,b){ return (b.kanji||'').length-(a.kanji||'').length; }).forEach(function(a){
-            if(!a.kanji) return;
+            if(!a.kanji || !hasKanji.test(a.kanji)) return;
             const re = new RegExp(a.kanji.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g');
             html = html.replace(re,'<ruby>'+a.kanji+'<rt>'+(a.furigana||'')+'</rt></ruby>');
         });
@@ -1138,7 +1143,7 @@
             '<div class="c-kanji">'+escapeHtml(word.kanji)+' <span class="tts-w" data-t="'+escapeAttr(word.kanji)+'" title="발음">'+SVG.volume+'</span></div>'+
             '<div class="c-meaning">'+escapeHtml(word.meaning)+'</div>'+
             '<div class="c-pos">['+escapeHtml(word.pos)+']</div>'+
-            '<div class="c-ex"><p style="font-family:\'Noto Sans JP\';margin:0 0 6px;display:flex;align-items:flex-start;flex-wrap:wrap;gap:4px;">'+applyRuby(word.example_jp, word.alt_spellings)+
+            '<div class="c-ex"><p style="font-family:\'Noto Sans JP\';margin:0 0 6px;line-height:1.75;word-break:keep-all;">'+applyRuby(word.example_jp, word.alt_spellings)+
             ' <span class="tts-e" data-t="'+escapeAttr(word.example_jp)+'" title="발음">'+SVG.volume+'</span></p>'+
             '<p style="font-size:11px;color:var(--text-sub);margin:0;">'+escapeHtml(word.example_kr)+'</p></div></div>'+
             '<div style="padding:10px 12px 12px;text-align:right;">'+
