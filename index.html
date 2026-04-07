@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>JLPT Swipe Master Pro</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
@@ -422,7 +422,6 @@
         .skim-pill-ico { display: flex; width: 16px; height: 16px; }
         .skim-pill-ico svg { width: 16px; height: 16px; stroke-width: 2; }
         .skim-lvl { text-align: center; font-size: 11px; font-weight: 800; color: var(--text-muted); margin-top: 2px; letter-spacing: .06em; }
-        .skim-counter-line { text-align: center; font-size: 11px; color: var(--text-muted); font-weight: 600; padding: 0 12px 4px; }
 
         .btn-skim.know { background: #fff; color: #000; border: 1.5px solid rgba(0,0,0,.12); box-shadow: var(--shadow-sm); }
         .btn-skim.learn { background: #000; color: #fff; border: 1.5px solid #000; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
@@ -444,6 +443,46 @@
         .lib-screen-head .lib-k { font-size: 12px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 2px; }
         .lib-screen-head .lib-h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.03em; }
         .quiz-furi-btn.on { background: #000 !important; color: #fff !important; border-color: #000 !important; }
+
+        /* 스키밍: 상단·카드 사이 간격 축소 (가운데 정렬 여백 제거) */
+        #screen-skimming .swipe-zone {
+            justify-content: flex-start;
+            align-items: stretch;
+            padding: 0 0 6px;
+            min-height: 0;
+        }
+        #screen-skimming #skim-zone {
+            align-items: flex-start;
+            justify-content: center;
+        }
+        .skim-counter-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 0 10px 2px;
+            min-height: 18px;
+        }
+        .skim-elapsed {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            color: var(--text-soft);
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .skim-elapsed:empty { display: none; }
+        .mod-thumb-strip { padding-bottom: 8px; }
+        .mod-card { padding-top: 16px; }
+        .skim-subbar { padding-top: 4px; padding-bottom: 4px; min-height: 48px; }
+        .btn-skim { touch-action: manipulation; }
+        .an-tip {
+            font-size: 12px; color: var(--text-muted); line-height: 1.55; margin-top: 12px; padding: 14px 14px;
+            border-radius: 16px; background: #fafafa; border: 1px solid var(--border);
+        }
     </style>
 </head>
 <body>
@@ -480,7 +519,7 @@
             </div>
             <div class="subbar-spacer" aria-hidden="true"></div>
         </div>
-        <div id="skim-counter" class="skim-counter-line">1 / 6</div>
+        <div class="skim-counter-line"><span id="skim-counter">1 / 6</span><span id="skim-session-elapsed" class="skim-elapsed" aria-label="세션 시간"></span></div>
         <div class="swipe-zone" id="skim-zone-wrap"><div id="skim-zone"></div></div>
         <div class="skim-btns">
             <button type="button" class="btn-skim know" onclick="handleAction('left')">알고 있어요</button>
@@ -656,6 +695,7 @@
             <p style="font-size:13px;font-weight:800;margin-bottom:8px;">일 평균 학습 시간</p>
             <p id="an-daily-avg" style="font-size:13px;line-height:1.6;color:var(--text-sub);"></p>
         </div>
+        <p class="an-tip" id="an-learning-tip">짧은 세션을 여러 번 나누는 <strong>분산 학습</strong>은 한 번에 길게 보는 것보다 장기 기억에 유리하다는 연구가 많습니다. 이 앱의 목표·스트릭은 그 리듬을 유지하는 데 도움이 됩니다.</p>
     </div>
 
     <div id="screen-quiz" class="screen hidden" style="padding:16px;overflow-y:auto;">
@@ -738,6 +778,38 @@
         imgPipelineVer:16
     };
     let skimSessionStart = 0;
+    let skimTimerId = null;
+    function stopSkimTimer(){
+        if(skimTimerId){ clearInterval(skimTimerId); skimTimerId = null; }
+    }
+    function startSkimTimer(){
+        stopSkimTimer();
+        var el = document.getElementById('skim-session-elapsed');
+        if(!el) return;
+        function pad(n){ return n < 10 ? '0'+n : String(n); }
+        function tick(){
+            if(!skimSessionStart || state.isTutorial){ el.textContent = ''; return; }
+            var s = Math.floor((Date.now() - skimSessionStart) / 1000);
+            var h = Math.floor(s / 3600);
+            var m = Math.floor((s % 3600) / 60);
+            var sec = s % 60;
+            el.textContent = (h > 0 ? h+':'+pad(m)+':' : m+':') + pad(sec);
+        }
+        tick();
+        skimTimerId = setInterval(tick, 1000);
+    }
+    function finalizeSkimSessionMetrics(){
+        if(state.isTutorial) return;
+        if(!skimSessionStart) return;
+        var elapsed = Date.now() - skimSessionStart;
+        state.totalSkimMs = (state.totalSkimMs || 0) + elapsed;
+        state.skimCardsShown = (state.skimCardsShown || 0) + (state.skimIdx || 0);
+        skimSessionStart = 0;
+        stopSkimTimer();
+        var el = document.getElementById('skim-session-elapsed');
+        if(el) el.textContent = '';
+        save();
+    }
     let wgFilter = 'all';
     let quizShowFuri = false;
     let quizCurrentId = null;
@@ -789,7 +861,10 @@
         }
     }
 
-    function wordById(id){ return state.db.find(function(w){ return w.id===id; }); }
+    function wordById(id){
+        if(id==null || id==='') return undefined;
+        return state.db.find(function(w){ return w.id===id || String(w.id)===String(id); });
+    }
 
     function pickJaVoice(){
         const v = speechSynthesis.getVoices();
@@ -905,6 +980,27 @@
         return fb;
     }
 
+    /** 홈 썸네일: 즉시 picsum 표시 후 고화질로 교체 (DOM id 문자열 vs DB 숫자 id 호환) */
+    function setThumbImage(el, w){
+        if(!el || !w) return;
+        el.innerHTML = '';
+        var img = document.createElement('img');
+        img.alt = '';
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.src = state.imgCache[w.id] || fastFallbackImageUrl(w);
+        img.onerror = function(){
+            this.onerror = null;
+            var fb = fastFallbackImageUrl(w);
+            state.imgCache[w.id] = fb; save();
+            this.src = fb;
+        };
+        el.appendChild(img);
+        loadWordImageUrl(w).then(function(u){
+            if(u && el.parentNode && el.contains(img)) img.src = u;
+        });
+    }
+
     function setImgPlaceholder(el, w){
         el.innerHTML = '<div class="ph-loading"><div class="ph-spinner"></div><span>이미지 불러오는 중…</span></div>';
         loadWordImageUrl(w).then(function(u){
@@ -1001,6 +1097,7 @@
         } else state.tutIdx = 0;
         showScreen('skimming');
         updateSkimUI();
+        if(!isTut) startSkimTimer();
     };
 
     function rightToday(){
@@ -1140,6 +1237,7 @@
     };
 
     function endSkimmingSession(){
+        finalizeSkimSessionMetrics();
         save();
         if(state.learnQueue.length>0 && confirm('플래시카드로 이동할까요?')){
             startFlashcardSession(state.learnQueue.slice());
@@ -1264,7 +1362,7 @@
         mod.querySelectorAll('.mod-thumb-im').forEach(function(el){
             var id = el.id.replace('mthumb-','');
             var w = wordById(id);
-            if(w) setImgPlaceholder(el, w);
+            if(w) setThumbImage(el, w);
         });
 
         renderCalendarCompact();
@@ -1702,11 +1800,7 @@
     };
 
     window.goHomeFromSkim = function(){
-        if(!state.isTutorial && skimSessionStart > 0){
-            state.totalSkimMs = (state.totalSkimMs||0) + (Date.now() - skimSessionStart);
-            state.skimCardsShown = (state.skimCardsShown||0) + (state.skimIdx||0);
-            skimSessionStart = 0;
-        }
+        finalizeSkimSessionMetrics();
         save();
         showScreen('home');
     };
@@ -1745,17 +1839,20 @@
 
         var sk = state.totalSkimMs||0, skc = state.skimCardsShown||0;
         var fc = state.totalFcMs||0, fcc = state.fcCardsDone||0;
-        var skAvg = skc? sk/skc:0, fcAvg = fcc? fc/fcc:0;
+        var skAvg = skc ? sk/skc : 0, fcAvg = fcc ? fc/fcc : 0;
+        var skimLearnSum = 0;
+        Object.keys(state.skimRightByDate||{}).forEach(function(k){ skimLearnSum += state.skimRightByDate[k]||0; });
+        var fcDays = Object.keys(state.fcOpenDates||{}).length;
         document.getElementById('an-skim').innerHTML =
             '<div class="stat-box"><div class="v">'+formatMs(sk)+'</div><div style="font-size:11px;color:var(--text-sub);">총 시간</div></div>'+
-            '<div class="stat-box"><div class="v">'+skc+'</div><div style="font-size:11px;color:var(--text-sub);">카드 수</div></div>'+
+            '<div class="stat-box"><div class="v">'+skc+'</div><div style="font-size:11px;color:var(--text-sub);">세션 카드 합</div></div>'+
             '<div class="stat-box"><div class="v">'+formatMs(skAvg)+'</div><div style="font-size:11px;color:var(--text-sub);">단어당 평균</div></div>'+
-            '<div class="stat-box"><div class="v">—</div><div style="font-size:11px;color:var(--text-sub);">누적</div></div>';
+            '<div class="stat-box"><div class="v">'+skimLearnSum+'</div><div style="font-size:11px;color:var(--text-sub);">누적 학습할게요</div></div>';
         document.getElementById('an-fc').innerHTML =
             '<div class="stat-box"><div class="v">'+formatMs(fc)+'</div><div style="font-size:11px;color:var(--text-sub);">총 시간</div></div>'+
-            '<div class="stat-box"><div class="v">'+fcc+'</div><div style="font-size:11px;color:var(--text-sub);">카드 수</div></div>'+
+            '<div class="stat-box"><div class="v">'+fcc+'</div><div style="font-size:11px;color:var(--text-sub);">복습 카드</div></div>'+
             '<div class="stat-box"><div class="v">'+formatMs(fcAvg)+'</div><div style="font-size:11px;color:var(--text-sub);">단어당 평균</div></div>'+
-            '<div class="stat-box"><div class="v">—</div><div style="font-size:11px;color:var(--text-sub);">누적</div></div>';
+            '<div class="stat-box"><div class="v">'+fcDays+'</div><div style="font-size:11px;color:var(--text-sub);">활동한 날</div></div>';
         var nSk = Object.keys(state.skimOpenDates||{}).length;
         var nFc = Object.keys(state.fcOpenDates||{}).length;
         var denom = Math.max(1, nSk, nFc);
@@ -1806,6 +1903,7 @@
         document.getElementById('quiz-feedback').style.color = ok ? 'var(--ok)' : 'var(--bad)';
     };
     window.showScreen = function(id){
+        if(id!== 'skimming') stopSkimTimer();
         if(id!=='home') closeCalDayToast();
         document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); s.classList.add('hidden'); });
         var el = document.getElementById('screen-'+id);
